@@ -7,7 +7,6 @@ import lenstools
 
 from lenstools.pipeline.simulation import SimulationBatch,LensToolsCosmology
 from lenstools.pipeline.settings import EnvironmentSettings,NGenICSettings,PlaneSettings,CatalogSettings
-from lenstools.pipeline.remote import LocalGit
 from lenstools.simulations.camb import CAMBSettings
 from lenstools.simulations.gadget2 import Gadget2Settings
 from lenstools.simulations.design import Design
@@ -15,8 +14,6 @@ from lenstools.simulations.design import Design
 import numpy as np
 import astropy.units as u
 from astropy.cosmology import z_at_value
-
-git = LocalGit()
 
 #Settings
 camb = CAMBSettings()
@@ -37,19 +34,7 @@ ngenic.GlassFile = lenstools.data("dummy_glass_little_endian.dat")
 gadget2.NumFilesPerSnapshot = 24
 
 #Init batch
-if "--git" in sys.argv:
-
-	batch = SimulationBatch.current(syshandler=git)
-	if batch is None:
-		environment = EnvironmentSettings(home="/Users/andreapetri/Documents/Columbia/Simulations/LSST100parameters/Test/Home",storage="/Users/andreapetri/Documents/Columbia/Simulations/LSST100parameters/Test/Storage")
-		batch = SimulationBatch(environment,syshandler=git)
-else:
-
-	batch = SimulationBatch.current()
-	if batch is None:
-		environment = EnvironmentSettings(home="/Users/andreapetri/Documents/Columbia/Simulations/LSST100parameters/Test/Home",storage="/Users/andreapetri/Documents/Columbia/Simulations/LSST100parameters/Test/Storage")
-		batch = SimulationBatch(environment)
-
+batch = SimulationBatch.current()
 
 if "--tree" in sys.argv:
 
@@ -93,7 +78,7 @@ if ("--lenses" in sys.argv) or ("--pfiles" in sys.argv):
 	#We want to make sure there are lenses up to the maximum of these distances
 	lens_distances = np.arange(lens_thickness_Mpc,d.max().to(u.Mpc).value + lens_thickness_Mpc,lens_thickness_Mpc) * u.Mpc
 
-	for model in batch.available:
+	for model in batch.models:
 
 		#Compute the redshifts of the Gadget snapshots
 		z = np.zeros_like(lens_distances.value)
