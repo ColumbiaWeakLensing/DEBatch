@@ -6,6 +6,7 @@ from __future__ import division,with_statement
 import sys,os
 import time
 import gc
+import json
 
 from operator import add
 from functools import reduce
@@ -16,7 +17,6 @@ from lenstools.utils.mpi import MPIWhirlPool
 
 from lenstools.image.convergence import Spin0
 from lenstools import ConvergenceMap,ShearMap
-from lenstools.catalog import Catalog,ShearCatalog
 
 from lenstools.simulations.raytracing import RayTracer,TransferSpecs
 from lenstools.simulations.camb import CAMBTransferFunction
@@ -111,8 +111,13 @@ def singleRedshift(pool,batch,settings,node_id):
 
 	####################################################################################################
 
-	#TODO: read in the transfer function information
-	transfer = None
+	#Read in transfer function
+	#TODO: scaling method is uniform only
+	tfr = CAMBTransferFunction.read(os.path.join(map_batch.home,settings.tfr_filename))
+	with open(os.path.join(map_batch.home,settings.cur2target),"r") as fp:
+		cur2target = json.load(fp)
+
+	transfer = TransferSpecs(tfr,cur2target,settings.with_scale_factor,None,settings.scaling_method)
 
 	####################################################################################################
 
