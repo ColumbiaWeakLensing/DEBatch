@@ -9,7 +9,7 @@ from itertools import product
 from lenstools.catalog import ShearCatalog
 from lenstools.statistics.ensemble import Ensemble, SquareMatrix
 from lenstools.statistics.database import Database
-from lenstools.pipeline.simulation import SimulationBatch
+from lenstools.pipeline.simulation import SimulationBatch,LensToolsCosmology
 
 import numpy as np
 
@@ -20,8 +20,6 @@ except:
 
 import astropy.units as u
 import astropy.table as tbl
-
-from photoz import generate_gaussian_photoz_errors
 
 real = re.compile(r'([0-9]{4})r\.fits')
 
@@ -401,4 +399,14 @@ class DESimulationBatch(SimulationBatch):
 	@property 
 	def fiducial_cosmo_id(self):
 		return "_".join([p + self.pformat.format(self._fiducial_params[p]) for p in self._parameters])
+
+	@property
+	def fiducial_cosmology(self):
+
+		Om0 = self._fiducial_params["Om"]
+		w0 = self._fiducial_params["w"]
+		wa = self._fiducial_params["wa"]
+		sigma8 = self._fiducial_params["si"]
+		
+		return LensToolsCosmology(Om0=Om0,Ode0=1-Om0,w0=w0,wa=wa,sigma8=sigma8)
 	
