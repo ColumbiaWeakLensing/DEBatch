@@ -42,7 +42,7 @@ def main():
 		ax = ax.reshape(r*c)
 
 		for n,p in enumerate(itertools.combinations(design,2)):
-			design.visualize(fig=fig,ax=ax[n],parameters=p,marker="x",s=50)
+			design.visualize(fig=fig,ax=ax[n],parameters=p,marker="o",s=50,color="black")
 
 		fig.savefig(cmd_args.parfile[0].replace(".json",".png"))
 
