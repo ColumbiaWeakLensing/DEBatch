@@ -37,9 +37,6 @@ class DirTree(object):
 		self.nside = 512
 		self.lens_thickness_Mpc = 120.0
 
-		#File names
-		self.design_filename = "par_test.pkl"
-
 		###############
 		###Settings####
 		###############
@@ -69,6 +66,18 @@ class DirTree(object):
 
 		#Init batch
 		self.batch = DESimulationBatch.current()
+
+		#################
+		###File names####
+		#################
+
+		self.design_filename = "par_test.pkl"
+		self.camb_lin_fileroot = "camb_lin"
+		self.camb_nl_fileroot = "camb_nl"
+		self.transfer_filename = "transfer_nl.pkl"
+		self.redshift_mapping = "cur2target.json"
+
+
 
 	###############################
 	#Initialize the directory tree#
@@ -116,7 +125,7 @@ class DirTree(object):
 
 		#CAMB settings (linear run)
 		for model in self.batch.models:
-			model["c0"].writeCAMB(z=0.,settings=self.camb_lin,fname="camb_lin.param",output_root="camb_lin")
+			model["c0"].writeCAMB(z=0.,settings=self.camb_lin,fname=self.camb_lin_fileroot+".param",output_root=self.camb_lin_fileroot)
 
 	##############################################################
 	##Comoving distances of the lenses and Gadget snapshot times##
@@ -149,7 +158,7 @@ class DirTree(object):
 			collection = model["c0"]
 
 			#Convert camb power spectra into ngenic ones
-			collection.camb2ngenic(z=0.0,input_root="camb_lin")
+			collection.camb2ngenic(z=0.0,input_root=self.camb_lin_fileroot)
 
 			#NGenIC and Gadget2 parameter files
 			r = collection["r0"]
@@ -181,7 +190,7 @@ class DirTree(object):
 			all_fiducial_z.append(model_z)
 
 			#Parse the CAMB linear log to scale As to the appropriate value for the right sigma8
-			camb_lin_filename = os.path.join(collection.home,"camb_lin.out")
+			camb_lin_filename = os.path.join(collection.home,self.camb_lin_fileroot+".out")
 			camb_lin_log = parseLog(camb_lin_filename)
 			sigma8 = camb_lin_log["sigma8"][0.0]
 			new_As = self.As_lin*np.sqrt(collection.cosmology.sigma8/sigma8)
@@ -189,7 +198,7 @@ class DirTree(object):
 			self.camb_nl.scalar_amplitude = new_As
 
 			#Print the CAMB parameter file for the non linear calculations of the transfer function
-			collection.writeCAMB(z=np.concatenate((fiducial_z,model_z)),settings=self.camb_nl,fname="camb_nl.param",output_root="camb_nl")
+			collection.writeCAMB(z=np.concatenate((fiducial_z,model_z)),settings=self.camb_nl,fname=self.camb_nl_fileroot+".param",output_root=self.camb_nl_fileroot)
 
 			#First build dictionary for the growth only: each redshift needs to be associated to the one in the fiducial cosmology at the same comoving distance
 			cur2target = dict()
@@ -197,7 +206,7 @@ class DirTree(object):
 				cur2target[model_z[n]] = fiducial_z[n]
 
 			#Save the dictionary mapping
-			dump_filename = os.path.join(collection.getMapSet("MapsGrowth").home,"cur2target.json") 
+			dump_filename = os.path.join(collection.getMapSet("MapsGrowth").home,self.redshift_mapping) 
 			with open(dump_filename,"w") as fp:
 				json.dump(cur2target,fp)
 			print("[+] Dumped redshift mapping (Growth only) to {0}".format(dump_filename))
@@ -208,7 +217,7 @@ class DirTree(object):
 				cur2target[fiducial_z[n]] = model_z[n]
 
 			#Save the dictionary mapping
-			dump_filename = os.path.join(collection.getMapSet("MapsGeometry").home,"cur2target.json") 
+			dump_filename = os.path.join(collection.getMapSet("MapsGeometry").home,self.redshift_mapping) 
 			with open(dump_filename,"w") as fp:
 				json.dump(cur2target,fp)
 			print("[+] Dumped redshift mapping (Geometry only) to {0}".format(dump_filename))
@@ -216,7 +225,7 @@ class DirTree(object):
 		
 		#Parse the CAMB linear log to scale As to the appropriate value for the right sigma8
 		collection = fiducial_model["c0"]
-		camb_lin_filename = os.path.join(collection.home,"camb_lin.out")
+		camb_lin_filename = os.path.join(collection.home,self.camb_lin_fileroot+".out")
 		camb_lin_log = parseLog(camb_lin_filename)
 		sigma8 = camb_lin_log["sigma8"][0.0]
 		new_As = self.As_lin*np.sqrt(collection.cosmology.sigma8/sigma8)
@@ -224,7 +233,7 @@ class DirTree(object):
 		self.camb_nl.scalar_amplitude = new_As
 
 		#Print the CAMB parameter file for the non linear calculations of the transfer function
-		collection.writeCAMB(z=np.concatenate(all_fiducial_z),settings=self.camb_nl,fname="camb_nl.param",output_root="camb_nl")
+		collection.writeCAMB(z=np.concatenate(all_fiducial_z),settings=self.camb_nl,fname=self.camb_nl_fileroot+".param",output_root=self.camb_nl_fileroot)
 
 
 	##############################################
@@ -240,8 +249,8 @@ class DirTree(object):
 		for model in self.batch.models:
 			
 			collection = model["c0"] 
-			tfr = collection.loadTransferFunction("camb_nl_transferfunc")
-			transfer_savename = os.path.join(collection.home,"transfer_nl.pkl") 
+			tfr = collection.loadTransferFunction(self.camb_nl_fileroot+"_transferfunc")
+			transfer_savename = os.path.join(collection.home,self.transfer_filename) 
 			tfr.save(transfer_savename)
 			print("[+] Pickled non linear transfer function to {0}".format(transfer_savename))
 
@@ -257,14 +266,14 @@ class DirTree(object):
 			collection = model["c0"]
 			
 			#Link the fiducial transfer function to MapsGeometry
-			source = os.path.join(fiducial_model["c0"].home,"transfer_nl.pkl")
-			destination = os.path.join(collection.getMapSet("MapsGeometry").home,"transfer_nl.pkl")
+			source = os.path.join(fiducial_model["c0"].home,self.transfer_filename)
+			destination = os.path.join(collection.getMapSet("MapsGeometry").home,self.transfer_filename)
 			os.symlink(source,destination)
 			print("[+] Symlinked transfer function at {0} to {1}".format(source,destination))
 
 			#Link the non fiducial transfer function to MapsGrowth
-			source = os.path.join(collection.home,"transfer_nl.pkl")
-			destination = os.path.join(collection.getMapSet("MapsGrowth").home,"transfer_nl.pkl")
+			source = os.path.join(collection.home,self.transfer_filename)
+			destination = os.path.join(collection.getMapSet("MapsGrowth").home,self.transfer_filename)
 			os.symlink(source,destination)
 			print("[+] Symlinked transfer function at {0} to {1}".format(source,destination))
 
