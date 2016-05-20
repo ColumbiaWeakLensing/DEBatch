@@ -29,8 +29,8 @@ parser.add_argument("-e","--environment",dest="env_file",action="store",type=str
 parser.add_argument("-o","--options",dest="exec_options",action="store",type=str,default=lensData("lens_default.ini"),help="configuration file to pass to the executable (planes or raytracing)")
 parser.add_argument("-j","--job",dest="job_options_file",action="store",type=str,default=lensData("job_default.ini"),help="job specifications file")
 parser.add_argument("-s","--system",dest="system",action="store",type=str,default=None,help="configuration file that contains the cluster specifications")
-parser.add_argument("-i","--input",dest="input",action="store",type=str,default="camb.params",help="name of the camb parameter file")
-parser.add_argument("-l","--log",dest="log",action="store",type=str,default="camb_linear.out",help="name of the camb output log file")
+parser.add_argument("-i","--input",dest="input",action="store",type=str,default="camb_lin.params",help="name of the camb parameter file")
+parser.add_argument("-l","--log",dest="log",action="store",type=str,default="camb_lin.out",help="name of the camb output log file")
 parser.add_argument("model_file",nargs="?",default=None,help="text file that contains all the IDs of the models to include in the job submission")
 
 #Parse command arguments and check that all provided options are available

@@ -13,148 +13,139 @@ import lenstools
 
 from lenstools.pipeline.simulation import LensToolsCosmology
 from lenstools.pipeline.settings import *
-from lenstools.simulations.camb import CAMBSettings
+from lenstools.simulations.camb import CAMBSettings,parseLog
 from lenstools.simulations.gadget2 import Gadget2Settings
 from lenstools.simulations.design import Design
 
 from batchcode.lib.featureDB import DESimulationBatch
 from batchcode.lib.rayGeomVGrowth import GVGMapSettings
 
+#####################################################################
+
+class DirTree(object):
+
+	@property
+	def order(self):
+		return ["init","camb_lin","pfiles","camb_nl","trf"]
 
 
-#Fixed options
-zmax = 3.1
-box_size_Mpc_over_h = 260.0
-nside = 512
-lens_thickness_Mpc = 120.0
+	def __init__(self):
 
-###############
-###Settings####
-###############
+		#Fixed options
+		self.zmax = 3.1
+		self.box_size_Mpc_over_h = 260.0
+		self.nside = 512
+		self.lens_thickness_Mpc = 120.0
 
-#CAMB
-camb_lin = CAMBSettings()
-camb_nl = CAMBSettings()
-As_lin = camb_lin.scalar_amplitude
+		#File names
+		self.design_filename = "par.pkl"
 
-#NGenIC
-ngenic = NGenICSettings()
-ngenic.GlassFile = lenstools.data("dummy_glass_little_endian.dat")
-seed = 5616559
+		###############
+		###Settings####
+		###############
 
-#Gadget2
-gadget2 = Gadget2Settings()
-gadget2.NumFilesPerSnapshot = 24
+		#CAMB
+		self.camb_lin = CAMBSettings()
+		self.As_lin = camb_lin.scalar_amplitude
+		self.camb_nl = CAMBSettings()
+		self.camb_nl.do_nonlinear = 1
 
-#Planes
-planes = PlaneSettings.read("planes.ini")
+		#NGenIC
+		self.ngenic = NGenICSettings()
+		self.ngenic.GlassFile = lenstools.data("dummy_glass_little_endian.dat")
+		self.seed = 5616559
 
-#Maps/catalogs
-shear = MapSettings.read("maps.ini")
-shearGeometry = GVGMapSettings.read("maps_geometry_only.ini")
-shearGrowth = GVGMapSettings.read("maps_growth_only.ini")
+		#Gadget2
+		self.gadget2 = Gadget2Settings()
+		self.gadget2.NumFilesPerSnapshot = 24
 
-#Init batch
-batch = DESimulationBatch.current()
+		#Planes
+		self.planes = PlaneSettings.read("planes.ini")
 
-###############################
-#Initialize the directory tree#
-###############################
+		#Maps/catalogs
+		self.shear = MapSettings.read("maps.ini")
+		self.shearGeometry = GVGMapSettings.read("maps_geometry_only.ini")
+		self.shearGrowth = GVGMapSettings.read("maps_growth_only.ini")
 
-if "--init" in sys.argv:
+		#Init batch
+		self.batch = DESimulationBatch.current()
 
-	##############################
-	#First the fiducial cosmology#
-	##############################
+	###############################
+	#Initialize the directory tree#
+	###############################
 
-	model = batch.newModel(batch.fiducial_cosmology,batch._parameters)
-	collection = model.newCollection(box_size=box_size_Mpc_over_h*model.Mpc_over_h,nside=nside)
-	r = collection.newRealization(seed)
-	pln_fiducial = r.newPlaneSet(planes)
-	shearprod = collection.newMapSet(shear)
+	def init(self):
 
-	##############################
-	#Next the non_fiducial models#
-	##############################
+		##############################
+		#First the fiducial cosmology#
+		##############################
 
-	design = Design.read(os.path.join(batch.home,"data","par.pkl"))[["Om","w0","wa","sigma8"]]
+		model = self.batch.newModel(self.batch.fiducial_cosmology,self.batch._parameters)
+		collection = model.newCollection(box_size=self.box_size_Mpc_over_h*model.Mpc_over_h,nside=self.nside)
+		r = collection.newRealization(self.seed)
+		pln_fiducial = r.newPlaneSet(self.planes)
+		shearprod = collection.newMapSet(self.shear)
 
-	for Om,w0,wa,si8 in design.values:
-	
-		#Lay down directory tree
-		cosmo = LensToolsCosmology(Om0=Om,Ode0=1-Om,w0=w0,wa=wa,sigma8=si8)
-		model = batch.newModel(cosmo,parameters=["Om","Ode","w","wa","si"])
-		collection = model.newCollection(box_size=box_size_Mpc_over_h*model.Mpc_over_h,nside=nside)
-		r = collection.newRealization(seed)
+		##############################
+		#Next the non_fiducial models#
+		##############################
 
-		#Planes (native and from fiducial cosmology)
-		pln = r.newPlaneSet(planes)
-		r.linkPlaneSet(pln_fiducial,"Planes_fiducial")
+		design = Design.read(os.path.join(self.batch.home,"data",self.design_filename))[["Om","w0","wa","sigma8"]]
 
-		#Maps
-		for settings in (shear,shearGeometry,shearGrowth):  
-			shearprod = collection.newMapSet(settings)
-
-############
-####CAMB####
-############
-
-if "--camb_lin" in sys.argv:
-
-	#CAMB settings (linear run)
-	for model in batch.models:
-		model["c0"].writeCAMB(z=0.,settings=camb_lin,fname="camb_lin.param",output_root="camb_lin")
-
-
-if "--camb_nl" in sys.argv:
-	pass
-
-
-if "--tfr" in sys.argv:
-
-	#######################################################################	
-	#Load transfer function output from CAMB and compress it in a pkl file#
-	#######################################################################
-
-	for model in batch.models:
-		collection = model["c0"] 
-		tfr = collection.loadTransferFunction("camb_nl_transferfunc")
-		tfr.save(os.path.join(collection.home,"transfer_nl.pkl"))
-
-	##################
-	##Symbolic links##
-	##################
-
-
-##############################################################
-##Comoving distances of the lenses and Gadget snapshot times##
-##############################################################
-
-if ("--lenses" in sys.argv) or ("--pfiles" in sys.argv):
-
-	#Compute comoving distance to maximum redshift for each model
-	d = list()
-	for model in batch.models:
-		d.append(model.cosmology.comoving_distance(zmax))
-
-	#Compute lens spacings
-	d = np.array([dv.value for dv in d]) * d[0].unit
-
-	#We want to make sure there are lenses up to the maximum of these distances
-	lens_distances = np.arange(lens_thickness_Mpc,d.max().to(u.Mpc).value + lens_thickness_Mpc,lens_thickness_Mpc) * u.Mpc
-
-	for model in batch.models:
-
-		#Compute the redshifts of the Gadget snapshots
-		z = np.zeros_like(lens_distances.value)
-		for n,dlens in enumerate(lens_distances):
-			z[n] = z_at_value(model.cosmology.comoving_distance,dlens)
-
-		#Assgn values to gadget settings
-		gadget2.OutputScaleFactor = np.sort(1/(1+z))
-
-		if "--pfiles" in sys.argv:
+		for Om,w0,wa,si8 in design.values:
 		
+			#Lay down directory tree
+			cosmo = LensToolsCosmology(Om0=Om,Ode0=1-Om,w0=w0,wa=wa,sigma8=si8)
+			model = self.batch.newModel(cosmo,parameters=self.batch._parameters)
+			collection = model.newCollection(box_size=self.box_size_Mpc_over_h*model.Mpc_over_h,nside=self.nside)
+			r = collection.newRealization(self.seed)
+
+			#Planes (native and from fiducial cosmology)
+			pln = r.newPlaneSet(self.planes)
+			r.linkPlaneSet(pln_fiducial,"Planes_fiducial")
+
+			#Maps
+			for settings in (self.shear,self.shearGeometry,self.shearGrowth):  
+				shearprod = collection.newMapSet(settings)
+
+	########################
+	####CAMB linear mode####
+	########################
+
+	def camb_lin(self):
+
+		#CAMB settings (linear run)
+		for model in self.batch.models:
+			model["c0"].writeCAMB(z=0.,settings=self.camb_lin,fname="camb_lin.param",output_root="camb_lin")
+
+	##############################################################
+	##Comoving distances of the lenses and Gadget snapshot times##
+	##############################################################
+
+	def pfiles(self):
+
+		#Compute comoving distance to maximum redshift for each model
+		d = list()
+		for model in self.batch.models:
+			d.append(model.cosmology.comoving_distance(self.zmax))
+
+		#Compute lens spacings
+		d = np.array([dv.value for dv in d]) * d[0].unit
+
+		#We want to make sure there are lenses up to the maximum of these distances
+		lens_distances = np.arange(self.lens_thickness_Mpc,d.max().to(u.Mpc).value + self.lens_thickness_Mpc,self.lens_thickness_Mpc) * u.Mpc
+
+		for model in self.batch.models:
+
+			#Compute the redshifts of the Gadget snapshots
+			z = np.zeros_like(lens_distances.value)
+			for n,dlens in enumerate(lens_distances):
+				z[n] = z_at_value(model.cosmology.comoving_distance,dlens)
+
+			#Assgn values to gadget settings
+			gadget2.OutputScaleFactor = np.sort(1/(1+z))
+
+			#Write parameter files
 			collection = model["c0"]
 
 			#Convert camb power spectra into ngenic ones
@@ -162,47 +153,138 @@ if ("--lenses" in sys.argv) or ("--pfiles" in sys.argv):
 
 			#NGenIC and Gadget2 parameter files
 			r = collection["r0"]
-			r.writeNGenIC(ngenic)
-			r.writeGadget2(gadget2)
+			r.writeNGenIC(self.ngenic)
+			r.writeGadget2(self.gadget2)
 
-		else:
-			print(gadget2.OutputScaleFactor)
+	#############################################################################################
+	#####CAMB nonlinear mode: redshift scalings for geometry only and growth only cases##########
+	#############################################################################################
 
-########################################################################
-#####Redshift scalings for geometry only and growth only cases##########
-########################################################################
-
-if "--gvg" in sys.argv:
-	
-	#Fiducial redshifts
-	fiducial_model = batch.fiducial_model
-	fiducial_a = fiducial_model["c0r0"].gadget_settings.OutputScaleFactor
-	fiducial_z = 1/fiducial_a - 1
-
-	#All other model redshifts
-	for model in batch.non_fiducial_models:
+	def camb_nl(self):
 		
-		collection = model["c0"]
-		model_a = collection["r0"].gadget_settings.OutputScaleFactor
-		model_z = 1/model_a - 1
+		#Fiducial redshifts
+		fiducial_model = self.batch.fiducial_model
+		fiducial_a = fiducial_model["c0r0"].gadget_settings.OutputScaleFactor
+		fiducial_z = 1/fiducial_a - 1
 
-		#First build dictionary for the growth only: each redshift needs to be associated to the one in the fiducial cosmology at the same comoving distance
-		cur2target = dict()
-		for n in range(len(model_z)):
-			cur2target[model_z[n]] = fiducial_z[n]
+		#All the redshifts we need to compute the nonlinear transfer function at 
+		all_fiducial_z = [fiducial_z]
 
-		#Save the dictionary mapping
-		with open(os.path.join(collection.getMapSet("MapsGrowth").home,"cur2target.json")) as fp:
-			json.dump(cur2target,fp)
+		#All other model redshifts
+		for model in self.batch.non_fiducial_models:
+			
+			collection = model["c0"]
+			model_a = collection["r0"].gadget_settings.OutputScaleFactor
+			model_z = 1/model_a - 1
 
-		#Next build dictionary for the geometry only: we are using the planes in the fiducial cosmology, but scaled to the corresponding redshift in the current cosmology
-		cur2target = dict()
-		for n in range(len(model_z)):
-			cur2target[fiducial_z[n]] = model_z[n]
+			#Append to all fiducial z
+			all_fiducial_z.append(model_z)
 
-		#Save the dictionary mapping
-		with open(os.path.join(collection.getMapSet("MapsGeometry").home,"cur2target.json")) as fp:
-			json.dump(cur2target,fp)
+			#Parse the CAMB linear log to scale As to the appropriate value for the right sigma8
+			camb_lin_filename = os.path.join(collection.home,"camb_lin.out")
+			camb_lin_log = parseLog(camb_lin_filename)
+			sigma8 = camb_lin_log["sigma8"][0.0]
+			new_As = self.As_lin*np.sqrt(collection.cosmology.sigma8/sigma8)
+			print("[+] Parsed camb log at {0}: scale As to {1:3e} for correct sigma8(z=0)={2:.3f}".format(camb_lin_filename,new_As,collection.cosmology.sigma8))
+			self.camb_nl.scalar_amplitude = new_As
+
+			#Print the CAMB parameter file for the non linear calculations of the transfer function
+			collection.writeCAMB(z=np.concatenate((fiducial_z,model_z)),settings=self.camb_nl,fname="camb_nl.param",output_root="camb_nl")
+
+			#First build dictionary for the growth only: each redshift needs to be associated to the one in the fiducial cosmology at the same comoving distance
+			cur2target = dict()
+			for n in range(len(model_z)):
+				cur2target[model_z[n]] = fiducial_z[n]
+
+			#Save the dictionary mapping
+			dump_filename = os.path.join(collection.getMapSet("MapsGrowth").home,"cur2target.json") 
+			with open(dump_filename,"w") as fp:
+				json.dump(cur2target,fp)
+			print("[+] Dumped redshift mapping (Growth only) to {0}".format(dump_filename))
+
+			#Next build dictionary for the geometry only: we are using the planes in the fiducial cosmology, but scaled to the corresponding redshift in the current cosmology
+			cur2target = dict()
+			for n in range(len(model_z)):
+				cur2target[fiducial_z[n]] = model_z[n]
+
+			#Save the dictionary mapping
+			dump_filename = os.path.join(collection.getMapSet("MapsGeometry").home,"cur2target.json") 
+			with open(dump_filename,"w") as fp:
+				json.dump(cur2target,fp)
+			print("[+] Dumped redshift mapping (Geometry only) to {0}".format(dump_filename))
+
+		
+		#Parse the CAMB linear log to scale As to the appropriate value for the right sigma8
+		collection = fiducial_model["c0"]
+		camb_lin_filename = os.path.join(collection.home,"camb_lin.out")
+		camb_lin_log = parseLog(camb_lin_filename)
+		sigma8 = camb_lin_log["sigma8"][0.0]
+		new_As = self.As_lin*np.sqrt(collection.cosmology.sigma8/sigma8)
+		print("[+] Parsed camb log at {0}: scale As to {1:3e} for correct sigma8(z=0)={2:.3f}".format(camb_lin_filename,new_As,collection.cosmology.sigma8))
+		self.camb_nl.scalar_amplitude = new_As
+
+		#Print the CAMB parameter file for the non linear calculations of the transfer function
+		collection.writeCAMB(z=np.concatenate(all_fiducial_z),settings=self.camb_nl,fname="camb_nl.param",output_root="camb_nl")
+
+
+	##############################################
+	#####CAMB nonlinear transfer function#########
+	##############################################
+
+	def trf(self):
+
+		#######################################################################	
+		#Load transfer function output from CAMB and compress it in a pkl file#
+		#######################################################################
+
+		for model in self.batch.models:
+			
+			collection = model["c0"] 
+			tfr = collection.loadTransferFunction("camb_nl_transferfunc")
+			transfer_savename = os.path.join(collection.home,"transfer_nl.pkl") 
+			tfr.save(transfer_savename)
+			print("[+] Pickled non linear transfer function to {0}".format(transfer_savename))
+
+		##################
+		##Symbolic links##
+		##################
+
+		fiducial_model = self.batch.fiducial_model
+
+		#Link the fiducial transfer function to MapsGeometry
+		for model in self.batch.non_fiducial_models:
+			
+			collection = model["c0"]
+			
+			#Link the fiducial transfer function to MapsGeometry
+			source = os.path.join(fiducial_model["c0"].home,"transfer_nl.pkl")
+			destination = os.path.join(collection.getMapSet("MapsGeometry").home,"transfer_nl.pkl")
+			os.symlink(source,destination)
+			print("[+] Symlinked transfer function at {0} to {1}".format(source,destination))
+
+			#Link the non fiducial transfer function to MapsGrowth
+			source = os.path.join(collection.home,"transfer_nl.pkl")
+			destination = os.path.join(collection.getMapSet("MapsGrowth").home,"transfer_nl.pkl")
+			os.symlink(source,destination)
+			print("[+] Symlinked transfer function at {0} to {1}".format(source,destination))
+
+
+###########
+#Execution#
+###########
+
+def main():
+	tree = DirTree()
+	for step in tree.order:
+		if "--"+step in sys.argv:
+			getattr(tree,step)()
+
+if __name__=="__main__":
+	main()
+
+
+
+
 
 
 
