@@ -381,8 +381,8 @@ class FisherDatabase(Database):
 
 class DESimulationBatch(SimulationBatch):
 
-	_fiducial_params = {"Om":0.26,"Ode":0.74,"w":-1.,"si":0.8,"wa":0.}
 	_parameters = ["Om","Ode","w","wa","si"]
+	_fiducial_params = {"Om":0.26,"Ode":0.74,"w":-1.,"si":0.8,"wa":0.}
 
 	@property
 	def fiducial_model(self):
@@ -402,11 +402,10 @@ class DESimulationBatch(SimulationBatch):
 
 	@property
 	def fiducial_cosmology(self):
-
-		Om0 = self._fiducial_params["Om"]
-		w0 = self._fiducial_params["w"]
-		wa = self._fiducial_params["wa"]
-		sigma8 = self._fiducial_params["si"]
 		
-		return LensToolsCosmology(Om0=Om0,Ode0=1-Om0,w0=w0,wa=wa,sigma8=sigma8)
+		cosmopar = dict()
+		for p in self._parameters:
+			cosmopar[self.environment.name2attr[p]] = self._fiducial_params[p]
+		
+		return LensToolsCosmology(**cosmopar)
 	
