@@ -26,7 +26,7 @@ class DirTree(object):
 
 	@property
 	def order(self):
-		return ["init","camb_lin","pfiles","camb_nl","trf"]
+		return ["init","camb_linear","pfiles","camb_nonlinear","trf"]
 
 
 	def __init__(self):
@@ -38,7 +38,7 @@ class DirTree(object):
 		self.lens_thickness_Mpc = 120.0
 
 		#File names
-		self.design_filename = "par.pkl"
+		self.design_filename = "par_test.pkl"
 
 		###############
 		###Settings####
@@ -46,7 +46,7 @@ class DirTree(object):
 
 		#CAMB
 		self.camb_lin = CAMBSettings()
-		self.As_lin = camb_lin.scalar_amplitude
+		self.As_lin = self.camb_lin.scalar_amplitude
 		self.camb_nl = CAMBSettings()
 		self.camb_nl.do_nonlinear = 1
 
@@ -112,7 +112,7 @@ class DirTree(object):
 	####CAMB linear mode####
 	########################
 
-	def camb_lin(self):
+	def camb_linear(self):
 
 		#CAMB settings (linear run)
 		for model in self.batch.models:
@@ -143,7 +143,7 @@ class DirTree(object):
 				z[n] = z_at_value(model.cosmology.comoving_distance,dlens)
 
 			#Assgn values to gadget settings
-			gadget2.OutputScaleFactor = np.sort(1/(1+z))
+			self.gadget2.OutputScaleFactor = np.sort(1/(1+z))
 
 			#Write parameter files
 			collection = model["c0"]
@@ -160,7 +160,7 @@ class DirTree(object):
 	#####CAMB nonlinear mode: redshift scalings for geometry only and growth only cases##########
 	#############################################################################################
 
-	def camb_nl(self):
+	def camb_nonlinear(self):
 		
 		#Fiducial redshifts
 		fiducial_model = self.batch.fiducial_model
