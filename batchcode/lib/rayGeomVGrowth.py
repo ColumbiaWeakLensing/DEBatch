@@ -71,7 +71,7 @@ def singleRedshift(pool,batch,settings,node_id):
 
 		local_settings_file = os.path.join(map_batch.home_subdir,"settings.p")
 		settings = MapSettings.read(local_settings_file)
-		assert isinstance(settings,MapSettings)
+		assert isinstance(settings,GVGMapSettings)
 
 		if (pool is None) or (pool.is_master()):
 			logdriver.warning("Overriding settings with the previously pickled ones at {0}".format(local_settings_file))
@@ -112,12 +112,28 @@ def singleRedshift(pool,batch,settings,node_id):
 	####################################################################################################
 
 	#Read in transfer function
-	#TODO: scaling method is uniform only
-	tfr = CAMBTransferFunction.read(os.path.join(map_batch.home,settings.tfr_filename))
-	with open(os.path.join(map_batch.home,settings.cur2target),"r") as fp:
+	tfr_filename = os.path.join(map_batch.home,settings.tfr_filename)
+	z_mapping_filename = os.path.join(map_batch.home,settings.cur2target)
+	
+	if pool is None or pool.is_master():
+		logdriver.info("Read pickled CAMB transfer function from {0}".format(tfr_filename))
+		logdriver.info("Read redshift mapping from {0}".format(z_mapping_filename)) 
+	
+	tfr = CAMBTransferFunction.read(tfr_filename)
+	with open(z_mapping_filename,"r") as fp:
 		cur2target = json.load(fp)
 
-	transfer = TransferSpecs(tfr,cur2target,settings.with_scale_factor,None,settings.scaling_method)
+	#If scaling is performed with FFTs, generate the k meshgrid
+	if settings.scaling_method=="FFT":
+		kx,ky = np.meshgrid(np.fft.rfftfreq(settings.fft_mesh_size),np.fft.fftfreq(settings.fft_mesh_size))
+		kmesh = np.sqrt(kx**2+ky**2)*2.*np.pi / collection[0].box_size.to(u.Mpc)
+	else:
+		kmesh = None
+
+	transfer = TransferSpecs(tfr,cur2target,settings.with_scale_factor,kmesh,settings.scaling_method)
+
+	if pool is None or pool.is_master():
+		logdriver.info("Density fluctuation scaling settings: with_scale_factor={0}, scaling_method={1}".format(transfer.with_scale_factor,transfer.scaling_method))
 
 	####################################################################################################
 
@@ -323,6 +339,7 @@ class GVGMapSettings(MapSettings):
 		self.cur2target = options.get(section,"cur2target")
 		self.with_scale_factor = options.getboolean(section,"with_scale_factor")
 		self.scaling_method = options.get(section,"scaling_method")
+		self.fft_mesh_size = options.getint(section,"fft_mesh_size")
 
 	@classmethod
 	def get(cls,options):

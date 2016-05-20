@@ -72,8 +72,8 @@ class DirTree(object):
 		#################
 
 		self.design_filename = "par_test.pkl"
-		self.camb_lin_fileroot = "camb_lin"
-		self.camb_nl_fileroot = "camb_nl"
+		self.camb_lin_fileroot = "camb/camb_lin"
+		self.camb_nl_fileroot = "camb/camb_nl"
 		self.transfer_filename = "transfer_nl.pkl"
 		self.redshift_mapping = "cur2target.json"
 
@@ -94,6 +94,9 @@ class DirTree(object):
 		r = collection.newRealization(self.seed)
 		pln_fiducial = r.newPlaneSet(self.planes)
 		shearprod = collection.newMapSet(self.shear)
+
+		#Directory dedicated to CAMB products
+		collection.mkdir("camb")
 
 		##############################
 		#Next the non_fiducial models#
@@ -116,6 +119,9 @@ class DirTree(object):
 			#Maps
 			for settings in (self.shear,self.shearGeometry,self.shearGrowth):  
 				shearprod = collection.newMapSet(settings)
+
+			#Directory dedicated to CAMB products
+			collection.mkdir("camb")
 
 	########################
 	####CAMB linear mode####
