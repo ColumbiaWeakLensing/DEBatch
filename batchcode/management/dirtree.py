@@ -2,6 +2,7 @@
 
 import sys,os
 import json
+import itertools
 
 import numpy as np
 import astropy.units as u
@@ -102,12 +103,30 @@ class DirTree(object):
 		#Next the non_fiducial models#
 		##############################
 
+		#Latin hypercube grid models#
 		design = Design.read(os.path.join(self.batch.home,"data",self.design_filename))[["Om","w0","wa","sigma8"]]
 
 		for Om,w0,wa,si8 in design.values:
 		
 			#Lay down directory tree
 			cosmo = LensToolsCosmology(Om0=Om,Ode0=1-Om,w0=w0,wa=wa,sigma8=si8)
+			model = self.batch.newModel(cosmo,parameters=self.batch._parameters)
+			collection = model.newCollection(box_size=self.box_size_Mpc_over_h*model.Mpc_over_h,nside=self.nside)
+			r = collection.newRealization(self.seed)
+
+			#Planes (native and from fiducial cosmology)
+			pln = r.newPlaneSet(self.planes)
+
+			#Maps
+			for settings in (self.shear,):  
+				shearprod = collection.newMapSet(settings)
+
+			#Directory dedicated to CAMB products
+			collection.mkdir("camb")
+
+		#Fisher variation models#
+		for cosmo in batch.fisher_variation_models:
+
 			model = self.batch.newModel(cosmo,parameters=self.batch._parameters)
 			collection = model.newCollection(box_size=self.box_size_Mpc_over_h*model.Mpc_over_h,nside=self.nside)
 			r = collection.newRealization(self.seed)
@@ -122,6 +141,7 @@ class DirTree(object):
 
 			#Directory dedicated to CAMB products
 			collection.mkdir("camb")
+
 
 	########################
 	####CAMB linear mode####
@@ -186,7 +206,7 @@ class DirTree(object):
 		all_fiducial_z = [fiducial_z]
 
 		#All other model redshifts
-		for model in self.batch.non_fiducial_models:
+		for model in self.batch.fisher_variation_models:
 			
 			collection = model["c0"]
 			model_a = collection["r0"].gadget_settings.OutputScaleFactor
@@ -252,7 +272,7 @@ class DirTree(object):
 		#Load transfer function output from CAMB and compress it in a pkl file#
 		#######################################################################
 
-		for model in self.batch.models:
+		for model in itertools.chain([self.batch.fiducial_model],self.batch.fisher_variation_models):
 			
 			collection = model["c0"] 
 			tfr = collection.loadTransferFunction(self.camb_nl_fileroot+"_transferfunc")
@@ -267,7 +287,7 @@ class DirTree(object):
 		fiducial_model = self.batch.fiducial_model
 
 		#Link the fiducial transfer function to MapsGeometry
-		for model in self.batch.non_fiducial_models:
+		for model in self.batch.fisher_variation_models:
 			
 			collection = model["c0"]
 			

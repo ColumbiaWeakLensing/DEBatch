@@ -383,22 +383,62 @@ class DESimulationBatch(SimulationBatch):
 
 	_parameters = ["Om","Ode","w","wa","si"]
 	_fiducial_params = {"Om":0.26,"Ode":0.74,"w":-1.,"si":0.8,"wa":0.}
+	_fisher_variations = {"Om":0.29,"Ode":0.71,"w":-0.8,"si":0.85,"wa":-0.2}
+
+	@property
+	def pformat(self):
+		return "{0:."+str(self.environment.cosmo_id_digits)+"f}"
+
+	####################################################################################################################
 
 	@property
 	def fiducial_model(self):
 		return self.getModel(self.fiducial_cosmo_id)
 
 	@property
-	def non_fiducial_models(self):
-		return [ m for m in self.models if m.cosmo_id!=self.fiducial_cosmo_id ]
+	def fisher_variation_models(self):
+		for cosmoid in self.fisher_variation_cosmo_id:
+			yield self.getModel(cosmoid)
 
-	@property
-	def pformat(self):
-		return "{0:."+str(self.environment.cosmo_id_digits)+"f}"
+	@property 
+	def non_fiducial_models(self):
+		return [ m for m in self.models if m.cosmo_id!=self.fiducial_cosmo_id]
+
+	####################################################################################################################
 
 	@property 
 	def fiducial_cosmo_id(self):
 		return "_".join([p + self.pformat.format(self._fiducial_params[p]) for p in self._parameters])
+
+	@property 
+	def fisher_variation_cosmo_id(self):
+
+		#Fiducial
+		cosmopar = dict()
+		for p in self._parameters:
+			cosmopar[p] = self._fiducial_params[p]
+
+		#Variations
+		for p in self._parameters:
+			
+			if p=="Ode":
+				continue
+			
+			elif p=="Om":
+
+				cosmopar["Om"] = self._fisher_variations["Om"]
+				cosmopar["Ode"] = self._fisher_variations["Ode"]
+				yield "_".join([par + self.pformat.format(cosmopar[par]) for par in self._parameters]) 
+				cosmopar["Om"] = self._fiducial_params["Om"]
+				cosmopar["Ode"] = self._fiducial_params["Ode"]
+
+			else:
+				
+				cosmopar[p] = self._fisher_variations[p]
+				yield "_".join([par + self.pformat.format(cosmopar[par]) for par in self._parameters])
+				cosmopar[p] = self._fiducial_params[p]
+
+	####################################################################################################################
 
 	@property
 	def fiducial_cosmology(self):
@@ -408,4 +448,32 @@ class DESimulationBatch(SimulationBatch):
 			cosmopar[self.environment.name2attr[p]] = self._fiducial_params[p]
 		
 		return LensToolsCosmology(**cosmopar)
+
+	@property 
+	def fisher_cosmology_variations(self):
+
+		#Fiducial
+		cosmopar = dict()
+		for p in self._parameters:
+			cosmopar[self.environment.name2attr[p]] = self._fiducial_params[p]
+
+		#Variations
+		for p in self._parameters:
+			
+			if p=="Ode":
+				continue
+			elif p=="Om":
+
+				cosmopar[self.environment.name2attr["Om"]] = self._fisher_variations["Om"]
+				cosmopar[self.environment.name2attr["Ode"]] = self._fisher_variations["Ode"]
+				yield LensToolsCosmology(**cosmopar) 
+				cosmopar[self.environment.name2attr["Om"]] = self._fiducial_params["Om"]
+				cosmopar[self.environment.name2attr["Ode"]] = self._fiducial_params["Ode"]
+
+			else:
+				cosmopar[self.environment.name2attr[p]] = self._fisher_variations[p]
+				yield LensToolsCosmology(**cosmopar)
+				cosmopar[self.environment.name2attr[p]] = self._fiducial_params[p]
+
+
 	
