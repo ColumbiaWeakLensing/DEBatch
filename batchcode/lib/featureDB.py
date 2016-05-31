@@ -9,7 +9,7 @@ from itertools import product
 from lenstools.catalog import ShearCatalog
 from lenstools.statistics.ensemble import Ensemble, SquareMatrix
 from lenstools.statistics.database import Database
-from lenstools.pipeline.simulation import SimulationBatch,LensToolsCosmology
+from lenstools.pipeline.simulation import SimulationBatch,LensToolsCosmology,string2cosmo
 
 import numpy as np
 
@@ -21,7 +21,7 @@ except:
 import astropy.units as u
 import astropy.table as tbl
 
-real = re.compile(r'([0-9]{4})r\.fits')
+real = re.compile(r'([0-9]+)r\.fits')
 
 #############################################
 #Measure features in a partcular realization#
@@ -383,7 +383,7 @@ class DESimulationBatch(SimulationBatch):
 
 	_parameters = ["Om","Ode","w","wa","si"]
 	_fiducial_params = {"Om":0.26,"Ode":0.74,"w":-1.,"si":0.8,"wa":0.}
-	_fisher_variations = {"Om":0.29,"Ode":0.71,"w":-0.8,"si":0.85,"wa":-0.2}
+	_fisher_variations = {"Om":[0.23,0.29],"w":[-0.8,-1.2],"si":[0.85,0.75],"wa":[-0.2,-0.5]}
 
 	@property
 	def pformat(self):
@@ -421,22 +421,24 @@ class DESimulationBatch(SimulationBatch):
 		#Variations
 		for p in self._parameters:
 			
-			if p=="Ode":
+			if p not in self._fisher_variations:
 				continue
-			
-			elif p=="Om":
 
-				cosmopar["Om"] = self._fisher_variations["Om"]
-				cosmopar["Ode"] = self._fisher_variations["Ode"]
-				yield "_".join([par + self.pformat.format(cosmopar[par]) for par in self._parameters]) 
-				cosmopar["Om"] = self._fiducial_params["Om"]
-				cosmopar["Ode"] = self._fiducial_params["Ode"]
+			for pval in self._fisher_variations[p]:
 
-			else:
-				
-				cosmopar[p] = self._fisher_variations[p]
-				yield "_".join([par + self.pformat.format(cosmopar[par]) for par in self._parameters])
-				cosmopar[p] = self._fiducial_params[p]
+				if p=="Om":
+					
+					cosmopar["Om"] = pval
+					cosmopar["Ode"] = 1-pval
+					yield "_".join([par + self.pformat.format(cosmopar[par]) for par in self._parameters])
+					cosmopar["Om"] = self._fiducial_params["Om"]
+					cosmopar["Ode"] = self._fiducial_params["Ode"]
+
+				else:
+
+					cosmopar[p] = pval
+					yield "_".join([par + self.pformat.format(cosmopar[par]) for par in self._parameters])
+					cosmopar[p] = self._fiducial_params[p]
 
 	####################################################################################################################
 
@@ -450,30 +452,9 @@ class DESimulationBatch(SimulationBatch):
 		return LensToolsCosmology(**cosmopar)
 
 	@property 
-	def fisher_cosmology_variations(self):
-
-		#Fiducial
-		cosmopar = dict()
-		for p in self._parameters:
-			cosmopar[self.environment.name2attr[p]] = self._fiducial_params[p]
-
-		#Variations
-		for p in self._parameters:
-			
-			if p=="Ode":
-				continue
-			elif p=="Om":
-
-				cosmopar[self.environment.name2attr["Om"]] = self._fisher_variations["Om"]
-				cosmopar[self.environment.name2attr["Ode"]] = self._fisher_variations["Ode"]
-				yield LensToolsCosmology(**cosmopar) 
-				cosmopar[self.environment.name2attr["Om"]] = self._fiducial_params["Om"]
-				cosmopar[self.environment.name2attr["Ode"]] = self._fiducial_params["Ode"]
-
-			else:
-				cosmopar[self.environment.name2attr[p]] = self._fisher_variations[p]
-				yield LensToolsCosmology(**cosmopar)
-				cosmopar[self.environment.name2attr[p]] = self._fiducial_params[p]
+	def fisher_variation_cosmology(self):
+		for cosmo_id in self.fisher_variation_cosmo_id:
+			yield string2cosmo(cosmo_id,name2attr=self.environment.name2attr)[0]
 
 
 	
