@@ -103,27 +103,6 @@ class DirTree(object):
 		#Next the non_fiducial models#
 		##############################
 
-		#Latin hypercube grid models#
-		design = Design.read(os.path.join(self.batch.home,"data",self.design_filename))[["Om","w0","wa","sigma8"]]
-
-		for Om,w0,wa,si8 in design.values:
-		
-			#Lay down directory tree
-			cosmo = LensToolsCosmology(Om0=Om,Ode0=1-Om,w0=w0,wa=wa,sigma8=si8)
-			model = self.batch.newModel(cosmo,parameters=self.batch._parameters)
-			collection = model.newCollection(box_size=self.box_size_Mpc_over_h*model.Mpc_over_h,nside=self.nside)
-			r = collection.newRealization(self.seed)
-
-			#Planes (native and from fiducial cosmology)
-			pln = r.newPlaneSet(self.planes)
-
-			#Maps
-			for settings in (self.shear,):  
-				shearprod = collection.newMapSet(settings)
-
-			#Directory dedicated to CAMB products
-			collection.mkdir("camb")
-
 		#Fisher variation models#
 		for cosmo in batch.fisher_variation_models:
 

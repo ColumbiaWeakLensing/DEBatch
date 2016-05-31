@@ -383,7 +383,7 @@ class DESimulationBatch(SimulationBatch):
 
 	_parameters = ["Om","Ode","w","wa","si"]
 	_fiducial_params = {"Om":0.26,"Ode":0.74,"w":-1.,"si":0.8,"wa":0.}
-	_fisher_variations = {"Om":[0.23,0.29],"w":[-0.8,-1.2],"si":[0.85,0.75],"wa":[-0.2,-0.5]}
+	_fisher_variations = {"Om":[0.29]}
 
 	@property
 	def pformat(self):
