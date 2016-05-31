@@ -86,6 +86,8 @@ if job_type=="camb":
 	print("[*] Reading job specifications from {0} section {1}".format(cmd_args.job_options_file,section))
 	job_settings = JobSettings.read(cmd_args.job_options_file,section)
 	job_settings.num_cores = len(realizations)
+	job_settings.redirect_stdout = os.path.join(environment.home,"Logs",job_settings.redirect_stdout)
+	job_settings.redirect_stderr = os.path.join(environment.home,"Logs",job_settings.redirect_stderr)
 	
 	with open(os.path.join(batch.home,"Jobs",job_settings.job_script_file),"w") as fp:
 		
@@ -95,6 +97,7 @@ if job_type=="camb":
 		print("[+] CAMB output will be directed to cosmo_id/geometry_id/{0}".format(cmd_args.log))
 		fp.write(job_handler.writePreamble(job_settings))
 		fp.write("\n"+"##################################\n"*3 + "\n\n")
+		fp.write("cd {0}\n\n".format(os.path.dirname(job_settings.path_to_executable)))
 
 		#Execution
 		for n,r in enumerate(realizations):
