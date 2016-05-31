@@ -125,7 +125,7 @@ class DirTree(object):
 			collection.mkdir("camb")
 
 		#Fisher variation models#
-		for cosmo in batch.fisher_variation_models:
+		for cosmo in batch.fisher_variation_cosmology:
 
 			model = self.batch.newModel(cosmo,parameters=self.batch._parameters)
 			collection = model.newCollection(box_size=self.box_size_Mpc_over_h*model.Mpc_over_h,nside=self.nside)
