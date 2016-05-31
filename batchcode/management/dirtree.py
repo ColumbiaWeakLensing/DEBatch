@@ -55,7 +55,7 @@ class DirTree(object):
 
 		#Gadget2
 		self.gadget2 = Gadget2Settings()
-		self.gadget2.NumFilesPerSnapshot = 24
+		self.gadget2.NumFilesPerSnapshot = 16
 
 		#Planes
 		self.planes = PlaneSettings.read("planes.ini")
@@ -104,7 +104,7 @@ class DirTree(object):
 		##############################
 
 		#Fisher variation models#
-		for cosmo in batch.fisher_variation_models:
+		for cosmo in self.batch.fisher_variation_cosmology:
 
 			model = self.batch.newModel(cosmo,parameters=self.batch._parameters)
 			collection = model.newCollection(box_size=self.box_size_Mpc_over_h*model.Mpc_over_h,nside=self.nside)
