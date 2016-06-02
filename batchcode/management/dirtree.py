@@ -19,7 +19,7 @@ from lenstools.simulations.gadget2 import Gadget2Settings
 from lenstools.simulations.design import Design
 
 from batchcode.lib.featureDB import DESimulationBatch
-from batchcode.lib.rayGeomVGrowth import GVGMapSettings
+from batchcode.lib.rayMapsGVG import GVGMapSettings
 
 #####################################################################
 
@@ -254,7 +254,7 @@ class DirTree(object):
 		for model in itertools.chain([self.batch.fiducial_model],self.batch.fisher_variation_models):
 			
 			collection = model["c0"] 
-			tfr = collection.loadTransferFunction(self.camb_nl_fileroot+"_transferfunc")
+			tfr = collection.loadTransferFunction(self.camb_nl_fileroot+"_matterpower")
 			transfer_savename = os.path.join(collection.home,self.transfer_filename) 
 			tfr.save(transfer_savename)
 			print("[+] Pickled non linear transfer function to {0}".format(transfer_savename))
