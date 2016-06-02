@@ -13,6 +13,7 @@ from functools import reduce
 
 from lenstools.simulations.logs import logdriver,logstderr,peakMemory,peakMemoryAll
 
+from lenstools.utils.misc import ApproxDict
 from lenstools.utils.mpi import MPIWhirlPool
 
 from lenstools.image.convergence import Spin0
@@ -122,7 +123,7 @@ def singleRedshift(pool,batch,settings,node_id):
 	tfr = CAMBTransferFromPower.read(tfr_filename)
 	with open(z_mapping_filename,"r") as fp:
 		mapping_json = json.load(fp)
-		cur2target = dict((float(z),mapping_json[z]) for z in mapping_json)
+		cur2target = ApproxDict((float(z),mapping_json[z]) for z in mapping_json)
 
 	#If scaling is performed with FFTs, generate the k meshgrid
 	if settings.scaling_method=="FFT":
