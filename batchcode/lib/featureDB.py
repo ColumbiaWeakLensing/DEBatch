@@ -124,7 +124,7 @@ class FeatureDatabase(Database):
 		#Compute Ensemble of realizations
 		ensemble_sub_catalog = Ensemble.compute(range(first_realization,last_realization+1),callback_loader=process_realization,assemble=_assemble,pool=pool,map_specs=self.map_specs,db_type=self.__class__,sub_catalog=sub_catalog,measurer=measurer,**kwargs)
 
-		#Add the cosmological parameters as additional columns
+		#TODO: Add the cosmological parameters as additional columns, but separate geometry VS growth
 		ensemble_sub_catalog["Om"] = sub_catalog.cosmology.Om0
 		ensemble_sub_catalog["w0"] = sub_catalog.cosmology.w0
 		ensemble_sub_catalog["wa"] = sub_catalog.cosmology.wa

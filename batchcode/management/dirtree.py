@@ -27,7 +27,7 @@ class DirTree(object):
 
 	@property
 	def order(self):
-		return ["init","camb_linear","pfiles","camb_nonlinear","trf"]
+		return ["init","camb_linear","pfiles","camb_nonlinear","tfr"]
 
 
 	def __init__(self):
@@ -245,7 +245,7 @@ class DirTree(object):
 	#####CAMB nonlinear transfer function#########
 	##############################################
 
-	def trf(self):
+	def tfr(self):
 
 		#######################################################################	
 		#Load transfer function output from CAMB and compress it in a pkl file#
