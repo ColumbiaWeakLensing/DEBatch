@@ -75,14 +75,20 @@ class FeatureDatabase(Database):
 
 	#Global options
 	map_specs = {
+	
 	"npixel" : 512,
 	"smooth" : 0.5*u.arcmin,
 	"fov" : 3.5*u.deg,
 	"zbins" : [(0.0052829915857917076, 0.46370802037163456), (0.46370802037163456, 0.68921284184762954),(0.68921284184762954, 0.93608623056054063),(0.93608623056054063, 1.2872107430836479),(1.2872107430836479, 2.9998163872653354)],
 	"add_shape_noise" : False,
 	"photoz_bias" : None,
-	"photoz_sigma" : None
+	"photoz_sigma" : None,
+
+	"to_split" : ["Om","w","wa"],
+	"psplit" : "geometry"
+	
 	}
+
 
 	def __init__(self,name,**kwargs):
 		super(FeatureDatabase,self).__init__(name)
@@ -124,11 +130,36 @@ class FeatureDatabase(Database):
 		#Compute Ensemble of realizations
 		ensemble_sub_catalog = Ensemble.compute(range(first_realization,last_realization+1),callback_loader=process_realization,assemble=_assemble,pool=pool,map_specs=self.map_specs,db_type=self.__class__,sub_catalog=sub_catalog,measurer=measurer,**kwargs)
 
-		#TODO: Add the cosmological parameters as additional columns, but separate geometry VS growth
-		ensemble_sub_catalog["Om"] = sub_catalog.cosmology.Om0
-		ensemble_sub_catalog["w0"] = sub_catalog.cosmology.w0
-		ensemble_sub_catalog["wa"] = sub_catalog.cosmology.wa
-		ensemble_sub_catalog["sigma8"] = sub_catalog.cosmology.sigma8
+
+		########################################################################################
+		#Add the cosmological parameters as additional columns, but separate geometry VS growth#
+		########################################################################################
+
+		to_split = self.map_specs["to_split"] 
+		if  to_split is None:
+			
+			#Nothing surprising if there is no parameter splitting
+			for p in sub_catalog.environment.name2attr:
+				pattr = sub_catalog.environment.name2attr[p]
+				ensemble_sub_catalog[pattr]  = getattr(sub_catalog.cosmology,pattr)
+
+		else:
+
+			#Perform the parameter splitting
+			for p in sub_catalog.environment.name2attr:
+				pattr = sub_catalog.environment.name2attr[p]
+
+				if p in self.map_specs["to_split"]:
+
+					for split_type in ["geometry","growth"]:
+						 ensemble_sub_catalog[pattr+"_"+split_type] = DESimulationBatch._fiducial_params[p]
+
+					ensemble_sub_catalog[pattr+"_"+self.map_specs["psplit"]] = getattr(sub_catalog.cosmology,pattr)
+
+				else:
+					ensemble_sub_catalog[pattr]  = getattr(sub_catalog.cosmology,pattr)
+
+		################################################################################################
 
 		#Add the extra columns
 		if extra_columns is not None:
