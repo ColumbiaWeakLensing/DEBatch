@@ -18,8 +18,8 @@ from lenstools.simulations.camb import CAMBSettings,parseLog
 from lenstools.simulations.gadget2 import Gadget2Settings
 from lenstools.simulations.design import Design
 
-from batchcode.lib.featureDB import DESimulationBatch
-from batchcode.lib.rayCatalogsGVG import GVGCatalogSettings
+from batchcode.library.featureDB import DESimulationBatch
+from batchcode.library.rayCatalogsGVG import GVGCatalogSettings
 
 #####################################################################
 
