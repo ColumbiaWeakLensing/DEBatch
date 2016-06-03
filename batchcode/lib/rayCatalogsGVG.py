@@ -344,19 +344,21 @@ def simulatedCatalog(pool,batch,settings,node_id):
 
 #################################################################################################################################
 
-class GVGCatalogSettings(MapSettings):
+class GVGCatalogSettings(CatalogSettings):
 
 	_section = "GVGCatalogSettings"
 
 	@classmethod
 	def get(cls,options):
 
-		settings = super(GVGMapSettings,cls).get(options)
-		settings.tfr_filename = options.get(section,"tfr_filename")
-		settings.cur2target = options.get(section,"cur2target")
-		settings.with_scale_factor = options.getboolean(section,"with_scale_factor")
-		settings.scaling_method = options.get(section,"scaling_method")
-		settings.fft_mesh_size = options.getint(section,"fft_mesh_size")
+		settings = super(GVGCatalogSettings,cls).get(options)
+		settings.tfr_filename = options.get(cls._section,"tfr_filename")
+		settings.cur2target = options.get(cls._section,"cur2target")
+		settings.with_scale_factor = options.getboolean(cls._section,"with_scale_factor")
+		settings.scaling_method = options.get(cls._section,"scaling_method")
+		settings.fft_mesh_size = options.getint(cls._section,"fft_mesh_size")
+
+		return settings
 
 
 
