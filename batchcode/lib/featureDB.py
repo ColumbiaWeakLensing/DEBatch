@@ -124,7 +124,7 @@ class FeatureDatabase(Database):
 		#Compute Ensemble of realizations
 		ensemble_sub_catalog = Ensemble.compute(range(first_realization,last_realization+1),callback_loader=process_realization,assemble=_assemble,pool=pool,map_specs=self.map_specs,db_type=self.__class__,sub_catalog=sub_catalog,measurer=measurer,**kwargs)
 
-		#Add the cosmological parameters as additional columns
+		#TODO: Add the cosmological parameters as additional columns, but separate geometry VS growth
 		ensemble_sub_catalog["Om"] = sub_catalog.cosmology.Om0
 		ensemble_sub_catalog["w0"] = sub_catalog.cosmology.w0
 		ensemble_sub_catalog["wa"] = sub_catalog.cosmology.wa
@@ -383,7 +383,7 @@ class DESimulationBatch(SimulationBatch):
 
 	_parameters = ["Om","Ode","w","wa","si"]
 	_fiducial_params = {"Om":0.26,"Ode":0.74,"w":-1.,"si":0.8,"wa":0.}
-	_fisher_variations = {"Om":[0.23,0.29],"w":[-0.8,-1.2],"si":[0.85,0.75],"wa":[-0.2,-0.5]}
+	_fisher_variations = {"Om":[0.29]}
 
 	@property
 	def pformat(self):

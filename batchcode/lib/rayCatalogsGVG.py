@@ -13,13 +13,13 @@ from functools import reduce
 
 from lenstools.simulations.logs import logdriver,logstderr,peakMemory,peakMemoryAll
 
+from lenstools.utils.misc import ApproxDict
 from lenstools.utils.mpi import MPIWhirlPool
 
-from lenstools.image.convergence import Spin0
-from lenstools import ConvergenceMap,ShearMap
+from lenstools.catalog.shear import Catalog,ShearCatalog
 
 from lenstools.simulations.raytracing import RayTracer,TransferSpecs
-from lenstools.simulations.camb import CAMBTransferFunction
+from lenstools.simulations.camb import CAMBTransferFromPower
 
 from lenstools.pipeline.simulation import SimulationBatch
 from lenstools.pipeline.settings import CatalogSettings
@@ -35,6 +35,24 @@ def GVGExecution():
 	kwargs = {}
 
 	return script_to_execute,settings_handler,kwargs
+
+#############################################################
+#########Spilt realizations in subdirectories################
+#############################################################
+
+def _subdirectories(num_realizations,realizations_in_subdir):
+
+	assert not(num_realizations%realizations_in_subdir),"The number of realizations in each subdirectory must be the same!"
+	s = list()
+
+	if num_realizations==realizations_in_subdir:
+		return s
+
+	for c in range(num_realizations//realizations_in_subdir):
+		s.append("{0}-{1}".format(c*realizations_in_subdir+1,(c+1)*realizations_in_subdir))
+
+	return s
+
 
 ################################################
 #######Single redshift ray tracing##############
@@ -167,9 +185,10 @@ def simulatedCatalog(pool,batch,settings,node_id):
 		logdriver.info("Read pickled CAMB transfer function from {0}".format(tfr_filename))
 		logdriver.info("Read redshift mapping from {0}".format(z_mapping_filename)) 
 	
-	tfr = CAMBTransferFunction.read(tfr_filename)
+	tfr = CAMBTransferFromPower.read(tfr_filename)
 	with open(z_mapping_filename,"r") as fp:
-		cur2target = json.load(fp)
+		mapping_json = json.load(fp)
+		cur2target = ApproxDict((float(z),mapping_json[z]) for z in mapping_json)
 
 	#If scaling is performed with FFTs, generate the k meshgrid
 	if settings.scaling_method=="FFT":
@@ -342,21 +361,18 @@ def simulatedCatalog(pool,batch,settings,node_id):
 
 #################################################################################################################################
 
-class GVGCatalogSettings(MapSettings):
+class GVGCatalogSettings(CatalogSettings):
 
 	_section = "GVGCatalogSettings"
 
 	@classmethod
 	def get(cls,options):
 
-		settings = super(GVGMapSettings,cls).get(options)
-		settings.tfr_filename = options.get(section,"tfr_filename")
-		settings.cur2target = options.get(section,"cur2target")
-		settings.with_scale_factor = options.getboolean(section,"with_scale_factor")
-		settings.scaling_method = options.get(section,"scaling_method")
-		settings.fft_mesh_size = options.getint(section,"fft_mesh_size")
+		settings = super(GVGCatalogSettings,cls).get(options)
+		settings.tfr_filename = options.get(cls._section,"tfr_filename")
+		settings.cur2target = options.get(cls._section,"cur2target")
+		settings.with_scale_factor = options.getboolean(cls._section,"with_scale_factor")
+		settings.scaling_method = options.get(cls._section,"scaling_method")
+		settings.fft_mesh_size = options.getint(cls._section,"fft_mesh_size")
 
-
-
-
-
+		return settings

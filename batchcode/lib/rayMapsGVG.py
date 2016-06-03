@@ -13,13 +13,14 @@ from functools import reduce
 
 from lenstools.simulations.logs import logdriver,logstderr,peakMemory,peakMemoryAll
 
+from lenstools.utils.misc import ApproxDict
 from lenstools.utils.mpi import MPIWhirlPool
 
 from lenstools.image.convergence import Spin0
 from lenstools import ConvergenceMap,ShearMap
 
 from lenstools.simulations.raytracing import RayTracer,TransferSpecs
-from lenstools.simulations.camb import CAMBTransferFunction
+from lenstools.simulations.camb import CAMBTransferFromPower
 
 from lenstools.pipeline.simulation import SimulationBatch
 from lenstools.pipeline.settings import MapSettings
@@ -119,9 +120,10 @@ def singleRedshift(pool,batch,settings,node_id):
 		logdriver.info("Read pickled CAMB transfer function from {0}".format(tfr_filename))
 		logdriver.info("Read redshift mapping from {0}".format(z_mapping_filename)) 
 	
-	tfr = CAMBTransferFunction.read(tfr_filename)
+	tfr = CAMBTransferFromPower.read(tfr_filename)
 	with open(z_mapping_filename,"r") as fp:
-		cur2target = json.load(fp)
+		mapping_json = json.load(fp)
+		cur2target = ApproxDict((float(z),mapping_json[z]) for z in mapping_json)
 
 	#If scaling is performed with FFTs, generate the k meshgrid
 	if settings.scaling_method=="FFT":

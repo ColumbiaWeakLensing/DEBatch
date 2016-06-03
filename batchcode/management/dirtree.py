@@ -19,7 +19,7 @@ from lenstools.simulations.gadget2 import Gadget2Settings
 from lenstools.simulations.design import Design
 
 from batchcode.lib.featureDB import DESimulationBatch
-from batchcode.lib.rayGeomVGrowth import GVGMapSettings
+from batchcode.lib.rayCatalogsGVG import GVGCatalogSettings
 
 #####################################################################
 
@@ -27,7 +27,7 @@ class DirTree(object):
 
 	@property
 	def order(self):
-		return ["init","camb_linear","pfiles","camb_nonlinear","trf"]
+		return ["init","camb_linear","pfiles","camb_nonlinear","tfr"]
 
 
 	def __init__(self):
@@ -61,9 +61,9 @@ class DirTree(object):
 		self.planes = PlaneSettings.read("planes.ini")
 
 		#Maps/catalogs
-		self.shear = MapSettings.read("maps.ini")
-		self.shearGeometry = GVGMapSettings.read("maps_geometry_only.ini")
-		self.shearGrowth = GVGMapSettings.read("maps_growth_only.ini")
+		self.shear = CatalogSettings.read("catalog.ini")
+		self.shearGeometry = GVGCatalogSettings.read("catalog_geometry_only.ini")
+		self.shearGrowth = GVGCatalogSettings.read("catalog_growth_only.ini")
 
 		#Init batch
 		self.batch = DESimulationBatch.current()
@@ -94,7 +94,7 @@ class DirTree(object):
 		collection = model.newCollection(box_size=self.box_size_Mpc_over_h*model.Mpc_over_h,nside=self.nside)
 		r = collection.newRealization(self.seed)
 		pln_fiducial = r.newPlaneSet(self.planes)
-		shearprod = collection.newMapSet(self.shear)
+		shearprod = collection.newCatalog(self.shear)
 
 		#Directory dedicated to CAMB products
 		collection.mkdir("camb")
@@ -102,6 +102,25 @@ class DirTree(object):
 		##############################
 		#Next the non_fiducial models#
 		##############################
+
+		#Fisher variation models#
+		for cosmo in self.batch.fisher_variation_cosmology:
+
+			model = self.batch.newModel(cosmo,parameters=self.batch._parameters)
+			collection = model.newCollection(box_size=self.box_size_Mpc_over_h*model.Mpc_over_h,nside=self.nside)
+			r = collection.newRealization(self.seed)
+
+			#Planes (native and from fiducial cosmology)
+			pln = r.newPlaneSet(self.planes)
+			r.linkPlaneSet(pln_fiducial,"Planes_fiducial")
+
+			#Catalogs
+			for settings in (self.shear,self.shearGeometry,self.shearGrowth):  
+				shearprod = collection.newCatalog(settings)
+
+			#Directory dedicated to CAMB products
+			collection.mkdir("camb")
+
 
 		#Latin hypercube grid models#
 		design = Design.read(os.path.join(self.batch.home,"data",self.design_filename))[["Om","w0","wa","sigma8"]]
@@ -117,27 +136,9 @@ class DirTree(object):
 			#Planes (native and from fiducial cosmology)
 			pln = r.newPlaneSet(self.planes)
 
-			#Maps
+			#Catalogs
 			for settings in (self.shear,):  
-				shearprod = collection.newMapSet(settings)
-
-			#Directory dedicated to CAMB products
-			collection.mkdir("camb")
-
-		#Fisher variation models#
-		for cosmo in batch.fisher_variation_cosmology:
-
-			model = self.batch.newModel(cosmo,parameters=self.batch._parameters)
-			collection = model.newCollection(box_size=self.box_size_Mpc_over_h*model.Mpc_over_h,nside=self.nside)
-			r = collection.newRealization(self.seed)
-
-			#Planes (native and from fiducial cosmology)
-			pln = r.newPlaneSet(self.planes)
-			r.linkPlaneSet(pln_fiducial,"Planes_fiducial")
-
-			#Maps
-			for settings in (self.shear,self.shearGeometry,self.shearGrowth):  
-				shearprod = collection.newMapSet(settings)
+				shearprod = collection.newCatalog(settings)
 
 			#Directory dedicated to CAMB products
 			collection.mkdir("camb")
@@ -232,7 +233,7 @@ class DirTree(object):
 				cur2target[model_z[n]] = fiducial_z[n]
 
 			#Save the dictionary mapping
-			dump_filename = os.path.join(collection.getMapSet("MapsGrowth").home,self.redshift_mapping) 
+			dump_filename = os.path.join(collection.getCatalog("ShearGrowth").home,self.redshift_mapping) 
 			with open(dump_filename,"w") as fp:
 				json.dump(cur2target,fp)
 			print("[+] Dumped redshift mapping (Growth only) to {0}".format(dump_filename))
@@ -243,7 +244,7 @@ class DirTree(object):
 				cur2target[fiducial_z[n]] = model_z[n]
 
 			#Save the dictionary mapping
-			dump_filename = os.path.join(collection.getMapSet("MapsGeometry").home,self.redshift_mapping) 
+			dump_filename = os.path.join(collection.getCatalog("ShearGeometry").home,self.redshift_mapping) 
 			with open(dump_filename,"w") as fp:
 				json.dump(cur2target,fp)
 			print("[+] Dumped redshift mapping (Geometry only) to {0}".format(dump_filename))
@@ -266,7 +267,7 @@ class DirTree(object):
 	#####CAMB nonlinear transfer function#########
 	##############################################
 
-	def trf(self):
+	def tfr(self):
 
 		#######################################################################	
 		#Load transfer function output from CAMB and compress it in a pkl file#
@@ -286,20 +287,20 @@ class DirTree(object):
 
 		fiducial_model = self.batch.fiducial_model
 
-		#Link the fiducial transfer function to MapsGeometry
+		#Link the fiducial transfer function to ShearGeometry
 		for model in self.batch.fisher_variation_models:
 			
 			collection = model["c0"]
 			
-			#Link the fiducial transfer function to MapsGeometry
+			#Link the fiducial transfer function to ShearGeometry
 			source = os.path.join(fiducial_model["c0"].home,self.transfer_filename)
-			destination = os.path.join(collection.getMapSet("MapsGeometry").home,self.transfer_filename)
+			destination = os.path.join(collection.getCatalog("ShearGeometry").home,self.transfer_filename)
 			os.symlink(source,destination)
 			print("[+] Symlinked transfer function at {0} to {1}".format(source,destination))
 
-			#Link the non fiducial transfer function to MapsGrowth
+			#Link the non fiducial transfer function to ShearGrowth
 			source = os.path.join(collection.home,self.transfer_filename)
-			destination = os.path.join(collection.getMapSet("MapsGrowth").home,self.transfer_filename)
+			destination = os.path.join(collection.getCatalog("ShearGrowth").home,self.transfer_filename)
 			os.symlink(source,destination)
 			print("[+] Symlinked transfer function at {0} to {1}".format(source,destination))
 
