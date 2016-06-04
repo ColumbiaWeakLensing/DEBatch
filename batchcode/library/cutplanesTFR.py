@@ -21,7 +21,7 @@ import numpy as np
 def PlanesTFRExecution():
 
 	script_to_execute = planesTFR
-	settings_handler = PlaneSettings
+	settings_handler = PlaneSettingsTFR
 	kwargs = {}
 
 	return script_to_execute,settings_handler,kwargs
@@ -34,13 +34,12 @@ def bucket(z,sorted_z):
 ################Main execution#########################
 #######################################################
 
-
 def planesTFR(pool,batch,settings,node_id):
 
 	#Safety check
 	assert isinstance(pool,MPIWhirlPool) or (pool is None)
 	assert isinstance(batch,SimulationBatch)
-	assert isinstance(settings,PlaneSettings)
+	assert isinstance(settings,PlaneSettingsTFR)
 
 	#Split the id into the model,collection and realization parts
 	cosmo_id,geometry_id,realization_id = node_id.split("|")
@@ -59,3 +58,11 @@ def planesTFR(pool,batch,settings,node_id):
 	#Done
 	if pool is None or pool.is_master():
 		logdriver.info("DONE!!")
+
+
+#######################################################
+################PlaneSettingsTFR#######################
+#######################################################
+
+class PlaneSettingsTFR(PlaneSettings):
+	pass
