@@ -149,7 +149,16 @@ def planesTFR(pool,batch,settings,node_id):
 						#Interpolate to target redshift
 						logdriver.info("Interpolating target redshift {0} between {1}-{2}".format(target_redshift,source_plane1.redshift,source_plane2.redshift))
 
-						#TODO: Perform linear interpolation
+						#Perform linear interpolation
+						z1 = source_plane1.redshift
+						z2 = source_plane2.redshift
+						
+						#Safety check
+						assert z2>z1
+						
+						#Interpolate
+						t = (target_redshift - z1) / (z2 - z1)
+						source_plane1.data = (1-t)*source_plane1.data + t*source_plane2.data 
 
 					
 					elif len(z_indices)==1:
@@ -159,17 +168,17 @@ def planesTFR(pool,batch,settings,node_id):
 						logdriver.info("Target redshift {0} is out of interpolation range, plane is left unaltered")
 						logdriver.info("Reading plane at {0}".format(source_plane_name))
 						source_plane1 = PotentialPlane.load(source_plane_name)
-						source_plane1.redshift = target_redshift
 
 					else:
 						raise ValueError
 
 
-					#TODO: Apply scale factor scaling in case we are doing growth case
-
+					if settings.with_scale_factor:
+						source_plane1.data *= (1.+target_redshift) / (1.+redshift[n])
 
 					#Save to disk
 					logdriver.info("Saving scaled plane to {0}".format(target_plane_name))
+					source_plane1.redshift = target_redshift
 					source_plane1.save(target_plane_name)
 
 

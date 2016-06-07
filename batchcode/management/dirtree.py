@@ -18,8 +18,8 @@ from lenstools.simulations.camb import CAMBSettings,parseLog
 from lenstools.simulations.gadget2 import Gadget2Settings
 from lenstools.simulations.design import Design
 
-from batchcode.lib.featureDB import DESimulationBatch
-from batchcode.lib.rayCatalogsGVG import GVGCatalogSettings
+from batchcode.library.featureDB import DESimulationBatch
+from batchcode.library.cutplanesTFR import PlaneSettingsTFR
 
 #####################################################################
 
@@ -59,11 +59,13 @@ class DirTree(object):
 
 		#Planes
 		self.planes = PlaneSettings.read("planes.ini")
+		self.planesGeometry = PlaneSettingsTFR.read("planes_geometry_only.ini")
+		self.planesGrowth = PlaneSettingsTFR.read("planes_growth_only.ini")
 
 		#Maps/catalogs
 		self.shear = CatalogSettings.read("catalog.ini")
-		self.shearGeometry = GVGCatalogSettings.read("catalog_geometry_only.ini")
-		self.shearGrowth = GVGCatalogSettings.read("catalog_growth_only.ini")
+		self.shearGeometry = CatalogSettings.read("catalog_geometry_only.ini")
+		self.shearGrowth = CatalogSettings.read("catalog_growth_only.ini")
 
 		#Init batch
 		self.batch = DESimulationBatch.current()
@@ -113,6 +115,10 @@ class DirTree(object):
 			#Planes (native and from fiducial cosmology)
 			pln = r.newPlaneSet(self.planes)
 			r.linkPlaneSet(pln_fiducial,"Planes_fiducial")
+
+			#Planes (geometry only and growth only)
+			for settings in (self.planesGeometry,self.planesGrowth):
+				pln = r.newPlaneSet(settings)
 
 			#Catalogs
 			for settings in (self.shear,self.shearGeometry,self.shearGrowth):  
@@ -211,7 +217,7 @@ class DirTree(object):
 				cur2target[model_z[n]] = fiducial_z[n]
 
 			#Save the dictionary mapping
-			dump_filename = os.path.join(collection.getCatalog("ShearGrowth").home,self.redshift_mapping) 
+			dump_filename = os.path.join(collection["r0"].getPlaneSet("Planes_growth").home,self.redshift_mapping) 
 			with open(dump_filename,"w") as fp:
 				json.dump(cur2target,fp)
 			print("[+] Dumped redshift mapping (Growth only) to {0}".format(dump_filename))
@@ -222,7 +228,7 @@ class DirTree(object):
 				cur2target[fiducial_z[n]] = model_z[n]
 
 			#Save the dictionary mapping
-			dump_filename = os.path.join(collection.getCatalog("ShearGeometry").home,self.redshift_mapping) 
+			dump_filename = os.path.join(collection["r0"].getPlaneSet("Planes_geometry").home,self.redshift_mapping) 
 			with open(dump_filename,"w") as fp:
 				json.dump(cur2target,fp)
 			print("[+] Dumped redshift mapping (Geometry only) to {0}".format(dump_filename))
