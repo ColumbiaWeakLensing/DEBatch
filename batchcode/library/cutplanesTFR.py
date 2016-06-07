@@ -203,7 +203,7 @@ class PlaneSettingsTFR(PlaneSettings):
 		
 		#Parent constructor + additional attributes
 		settings = super(PlaneSettingsTFR,cls).get(options)
-		settings.target_plane_set = options.get(section,"target_plane_set")
+		settings.parent_plane_set = options.get(section,"parent_plane_set")
 		settings.cur2target = options.get(section,"cur2target")
 		settings.with_scale_factor = options.getboolean(section,"with_scale_factor")
 
