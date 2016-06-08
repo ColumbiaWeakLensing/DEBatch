@@ -67,8 +67,8 @@ def planesTFR(pool,batch,settings,node_id):
 	realization = collection.getRealization(ic)
 	
 	#Original plane set and target plane set
-	plane_set = realization.getPlaneSet(settings.directory_name)
-	target_plane_set = realization.getPlaneSet(settings.target_plane_set)
+	plane_set = realization.getPlaneSet(settings.parent_plane_set)
+	target_plane_set = realization.getPlaneSet(settings.directory_name)
 
 	#Read in the info file, that contains the number of the snapshot, redshift and comoving distance
 	info_filename = os.path.join(plane_set.storage,"info.txt")
