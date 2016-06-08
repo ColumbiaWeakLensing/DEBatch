@@ -1,6 +1,6 @@
-#######################################################################
-################Cut lens planes out of a Gadget2 snapshot##############
-#######################################################################
+###########################################################################
+################Cut interpolate Lens Planes between redshifts##############
+###########################################################################
 
 from __future__ import division
 
@@ -11,30 +11,51 @@ from lenstools.simulations.logs import logdriver,logstderr,peakMemory,peakMemory
 
 from lenstools.pipeline.simulation import SimulationBatch
 from lenstools.pipeline.settings import PlaneSettings
-from lenstools.simulations import DensityPlane,PotentialPlane
 
-from lenstools.utils import MPIWhirlPool
-from lenstools import configuration
+from lenstools.simulations import PotentialPlane
+
+from lenstools.utils.misc import ApproxDict
+
 
 import numpy as np
+import astropy.units as u
 
-#FFT engine
-fftengine = configuration.fftengine()
+#Orchestra director of the execution
+def PlanesTFRExecution():
+
+	script_to_execute = planesTFR
+	settings_handler = PlaneSettingsTFR
+	kwargs = {}
+
+	return script_to_execute,settings_handler,kwargs
+
+#Bucketing function
+def bucket(z,sorted_z):
+	
+	if z<sorted_z[0]:
+		return (0,)
+
+	if z>sorted_z[-1]:
+		return (len(sorted_z)-1,)
+
+	for n in range(len(sorted_z)-1):
+		if (z>=sorted_z[n]) and z<sorted_z[n+1]:
+			return (n,n+1)
 
 #######################################################
 ################Main execution#########################
 #######################################################
 
 
-def main(pool,batch,settings,id,override):
+def planesTFR(pool,batch,settings,node_id):
 
 	#Safety check
-	assert isinstance(pool,MPIWhirlPool) or (pool is None)
+	assert pool is None,"planesTFR must run on one processon only!"
 	assert isinstance(batch,SimulationBatch)
-	assert isinstance(settings,PlaneSettings)
+	assert isinstance(settings,PlaneSettingsTFR)
 
 	#Split the id into the model,collection and realization parts
-	cosmo_id,geometry_id,realization_id = id.split("|")
+	cosmo_id,geometry_id,realization_id = node_id.split("|")
 
 	#Get a handle on the simulation model
 	model = batch.getModel(cosmo_id)
@@ -42,209 +63,158 @@ def main(pool,batch,settings,id,override):
 	#Get the realization number
 	ic = int(realization_id.strip("ic"))
 
-	#Instantiate the appropriate SimulationIC object
+	#Instantiate the appropriate SimulationIC,SimulationPlanes objects 
 	collection = model.getCollection(geometry_id)
 	realization = collection.getRealization(ic)
-	snapshot_path = realization.snapshot_subdir
 	
-	#Base name of the snapshot files
-	SnapshotFileBase = realization.SnapshotFileBase
+	#Original plane set and target plane set
+	plane_set = realization.getPlaneSet(settings.parent_plane_set)
+	target_plane_set = realization.getPlaneSet(settings.directory_name)
 
-	#Log to user
-	if (pool is None) or (pool.is_master()):
-		logdriver.info("Fast Fourier Transform operations handler: {0}".format(fftengine.__class__.__name__))
-		logdriver.info("Reading snapshots from {0}".format(os.path.join(snapshot_path,SnapshotFileBase+"*")))
-
-	#Construct also the SimulationPlanes instance, to handle the current plane batch
-	plane_batch = realization.getPlaneSet(settings.directory_name)
-	save_path = plane_batch.storage_subdir
-
-	#Override settings from the command line
-	if override is not None:
-		
-		override_dict = json.loads(override)
-		for key in override_dict.keys():
-
-			if not hasattr(settings,key):
-				raise AttributeError("Plane settings have no such attribute: '{0}'".format(key))
-
-			if (pool is None) or (pool.is_master()):
-				logdriver.info("Overriding original setting {0}={1} with command line value {0}={2}".format(key,getattr(settings,key),override_dict[key]))
-
-			setattr(settings,key,override_dict[key])
-
-
-	#Override with pickled options in storage subdir if prompted by user
-	if settings.override_with_local:
-		
-		local_settings_file = os.path.join(plane_batch.home,"settings.p")
-		settings = PlaneSettings.read(local_settings_file)
-		assert isinstance(settings,PlaneSettings)
-
-		if (pool is None) or (pool.is_master()):
-			logdriver.warning("Overriding settings with the previously pickled ones at {0}".format(local_settings_file))
-
-
-	if (pool is None) or (pool.is_master()):
-		
-		logdriver.info("Planes will be saved to {0}".format(save_path))
-		#Open the info file to save the planes information
-		infofile = open(plane_batch.path("info.txt"),"w")
-
-	#Read from PlaneSettings
-	plane_resolution = settings.plane_resolution
+	#Read in the info file, that contains the number of the snapshot, redshift and comoving distance
+	info_filename = os.path.join(plane_set.storage,"info.txt")
+	logdriver.info("Reading plane set {0} info file at {1}".format(plane_set.name,info_filename))
 	
-	first_snapshot = settings.first_snapshot
-	last_snapshot = settings.last_snapshot
-	if first_snapshot is None:
-		snapshots = settings.snapshots
-	else:
-		snapshots = range(first_snapshot,last_snapshot+1)
-	
-	cut_points = settings.cut_points
-	normals = settings.normals
-	thickness = settings.thickness
-	thickness_resolution = settings.thickness_resolution
-	smooth = settings.smooth
-	kind = settings.kind
+	with open(info_filename,"r") as fp:
 
-	#Place holder for the lensing density on the plane
-	density_projected = np.empty((plane_resolution,)*2,dtype=np.float32)
+		snapshot_number = list()
+		distance = list()
+		redshift = list()
 
-	#Open a RMA window on the density placeholder
-	if pool is not None:
-		pool.openWindow(density_projected)
-		
-		if pool.is_master():
-			logdriver.debug("Opened density window of type {0}".format(pool._window_type))
-
-	#Pre--compute multipoles for solving Poisson equation
-	lx,ly = np.meshgrid(fftengine.fftfreq(plane_resolution),fftengine.rfftfreq(plane_resolution),indexing="ij")
-	l_squared = lx**2 + ly**2
-				
-	#Avoid dividing by 0
-	l_squared[0,0] = 1.0
-
-	#Arguments
-	kwargs = {
-
-	"plane_resolution" : plane_resolution,
-	"thickness_resolution" : thickness_resolution,
-	"smooth" : smooth,
-	"kind" : kind,
-	"density_placeholder" : density_projected,
-	"l_squared" : l_squared
-
-	}
-
-	#Log the initial memory load
-	peak_memory_task,peak_memory_all = peakMemory(),peakMemoryAll(pool)
-	if (pool is None) or (pool.is_master()):
-		logstderr.info("Initial memory usage: {0:.3f} (task), {1[0]:.3f} (all {1[1]} tasks)".format(peak_memory_task,peak_memory_all))
-
-
-	num_planes_total = len(snapshots)*len(cut_points)*len(normals)
-	nplane = 1 
-
-	#Cycle over each snapshot
-	for n in snapshots:
-
-		#Log
-		if (pool is None) or (pool.is_master()):
-			logdriver.info("Waiting for input files from snapshot {0}...".format(n))
-		
-		#Open the snapshot
-		snapshot_filename = realization.path(configuration.snapshot_handler.int2root(SnapshotFileBase,n),where="snapshot_subdir")
-		if pool is not None:
-			logdriver.info("Task {0} reading nbody snapshot from {1}".format(pool.comm.rank,snapshot_filename))
-
-		snap = configuration.snapshot_handler.open(snapshot_filename,pool=pool)
-
-		if pool is not None:
-			logdriver.debug("Task {0} read nbody snapshot from {1}".format(pool.comm.rank,snapshot_filename))
-
-		#Get the positions of the particles
-		if not hasattr(snap,"positions"):
-			snap.getPositions()
-
-		#Log memory usage
-		if (pool is None) or (pool.is_master()):
-			logstderr.debug("Read particle positions: peak memory usage {0:.3f} (task)".format(peakMemory()))
-
-		#Close the snapshot file
-		snap.fp.close()
-
-		#Update the summary info file
-		if (pool is None) or (pool.is_master()):
-			infofile.write("s={0},d={1},z={2}\n".format(n,snap.header["comoving_distance"],snap.header["redshift"]))
-
-		#Cut the lens planes
-		for cut,pos in enumerate(cut_points):
-			for normal in normals:
-
-				if pool is None or pool.is_master():
-					logdriver.info("Cutting {0} plane at {1} with normal {2},thickness {3}, of size {4} x {4}".format(kind,pos,normal,thickness,snap.header["box_size"]))
-
-				############################
-				#####Do the cutting#########
-				############################
-				
-				plane,resolution,NumPart = snap.cutPlaneGaussianGrid(normal=normal,center=pos,thickness=thickness,left_corner=np.zeros(3)*snap.Mpc_over_h,**kwargs)
-
-				#TODO: measure the power spectrum to infer the transfer function
-				
-				#######################################################################################################################################
-
-				#Save the plane
-				plane_file = batch.syshandler.map(os.path.join(save_path,settings.name_format.format(n,kind,cut,normal,settings.format)))
-
-				if (pool is None) or (pool.is_master()):
+		#Parse each line
+		while True:
 			
-					#Wrap the plane in a PotentialPlane object
-					if kind=="potential":
-						plane_wrap = PotentialPlane(plane.value,angle=snap.header["box_size"],redshift=snap.header["redshift"],comoving_distance=snap.header["comoving_distance"],cosmology=snap.cosmology,num_particles=NumPart,unit=plane.unit)
-					elif kind=="density":
-						plane_wrap = DensityPlane(plane,angle=snap.header["box_size"],redshift=snap.header["redshift"],comoving_distance=snap.header["comoving_distance"],cosmology=snap.cosmology,num_particles=NumPart)
+			#Split the line in snapshot,distance,redshift
+			line = fp.readline()
+		
+			#Break cycle if at the end
+			if not(line):
+				break
+
+			#Split line
+			line = line.rstrip("\n").split(",")
+			snapshot_number.append(int(line[0].split("=")[1]))
+		
+			d,unit = line[1].split("=")[1].split(" ")
+			if unit=="Mpc/h":
+				distance.append(float(d)*model.Mpc_over_h)
+			else:
+				distance.append(float(d)*getattr(u,"unit"))
+
+			redshift.append(float(line[2].split("=")[1]))
+
+		#Convert into arrays
+		snapshot_number = np.array(snapshot_number)
+		distance = u.quantity.Quantity(distance)
+		redshift = np.array(redshift)
+
+		#Sort
+		distance = distance[np.argsort(redshift)]
+		snapshot_number = snapshot_number[np.argsort(redshift)]
+		redshift = np.sort(redshift)
+
+	#Parse the cur2target mapping
+	cur2target_filename = os.path.join(target_plane_set.home,settings.cur2target)
+	logdriver.info("Reading redshift mapping from {0}".format(cur2target_filename))
+	with open(cur2target_filename,"r") as fp:
+		cur2target_parsed = json.load(fp)
+		cur2target = ApproxDict((float(z),cur2target_parsed[z]) for z in cur2target_parsed)
+
+	#Cycle over planes: for each plane, interpolate its values to the target redshift
+	info_filename = os.path.join(target_plane_set.storage,"info.txt")
+	logdriver.info("Writing target plane set {0} info file to {1}".format(plane_set.name,info_filename))
+	with open(info_filename,"w") as fp:
+
+		for n,nsnap in enumerate(snapshot_number):
+			
+			#Log
+			target_redshift = cur2target[redshift[n]]
+			logdriver.info("Redshift {0:.4f} will be mapped to redshift {1:.4f}".format(redshift[n],target_redshift))
+
+			#Write corresponding line in the info file
+			fp.write("s={0},d={1},z={2}\n".format(nsnap,distance[n],target_redshift))
+
+			#Find the correct bucket
+			z_indices = bucket(target_redshift,redshift)
+
+			#Interpolate each cut point and normal
+			for ncut,cut in enumerate(settings.cut_points):
+				for normal in settings.normals:
+
+					target_plane_name = os.path.join(target_plane_set.storage,settings.name_format.format(nsnap,settings.kind,ncut,normal,settings.format))
+
+					if len(z_indices)==2:
+
+						#If inside the interpolation range, interpolate lensing density linearly
+						source_plane_name1 = os.path.join(plane_set.storage,settings.name_format.format(snapshot_number[z_indices[0]],settings.kind,ncut,normal,settings.format))
+						source_plane_name2 = os.path.join(plane_set.storage,settings.name_format.format(snapshot_number[z_indices[1]],settings.kind,ncut,normal,settings.format))
+						
+						logdriver.info("Reading plane at {0}".format(source_plane_name1))
+						source_plane1 = PotentialPlane.load(source_plane_name1)
+						logdriver.info("Reading plane at {0}".format(source_plane_name2))
+						source_plane2 = PotentialPlane.load(source_plane_name2)
+
+						#Interpolate to target redshift
+						logdriver.info("Interpolating target redshift {0} between {1}-{2}".format(target_redshift,source_plane1.redshift,source_plane2.redshift))
+
+						#Perform linear interpolation
+						z1 = source_plane1.redshift
+						z2 = source_plane2.redshift
+						
+						#Safety check
+						assert z2>z1
+						
+						#Interpolate
+						t = (target_redshift - z1) / (z2 - z1)
+						logdriver.debug("Intepolation t={0:.2e}".format(t))
+						source_plane1.data = (1-t)*source_plane1.data + t*source_plane2.data 
+
+					
+					elif len(z_indices)==1:
+
+						#If out of the interpolation range, do nothing
+						source_plane_name = os.path.join(plane_set.storage,settings.name_format.format(snapshot_number[z_indices[0]],settings.kind,ncut,normal,settings.format)) 
+						logdriver.info("Target redshift {0} is out of interpolation range, plane is left unaltered".format(target_redshift))
+						logdriver.info("Reading plane at {0}".format(source_plane_name))
+						source_plane1 = PotentialPlane.load(source_plane_name)
+
 					else:
-						raise NotImplementedError("Plane of kind '{0}' not implemented!".format(kind))
-
-					#Save the result
-					logdriver.info("Saving plane to {0}".format(plane_file))
-					plane_wrap.save(plane_file)
-					logdriver.debug("Saved plane to {0}".format(plane_file))
+						raise ValueError
 
 
-				#Log peak memory usage
-				peak_memory_task,peak_memory_all = peakMemory(),peakMemoryAll(pool)
-				if (pool is None) or (pool.is_master()):
-					logstderr.info("Plane {0} of {1} completed, peak memory usage: {2:.3f} (task), {3[0]:.3f} (all {3[1]} tasks)".format(nplane,num_planes_total,peak_memory_task,peak_memory_all))
+					if settings.with_scale_factor:
+						source_plane1.data *= (1.+target_redshift) / (1.+redshift[n])
 
-				nplane += 1
-			
-				#Safety barrier sync
-				if pool is not None:
-					pool.comm.Barrier()
+					#Save to disk
+					logdriver.info("Saving scaled plane to {0}".format(target_plane_name))
+					source_plane1.redshift = target_redshift
+					source_plane1.save(target_plane_name)
 
 
-		#Close the snapshot
-		snap.close()
-
-	#Safety barrier sync
-	if pool is not None:
-		pool.comm.Barrier()
-
-		#Close the RMA window
-		pool.closeWindow()
-		
-		if pool.is_master():
-			logdriver.debug("Closed density window of type {0}".format(pool._window_type))
-
-	#Close the infofile
-	if (pool is None) or (pool.is_master()):
-		infofile.close()
-
-	#TODO: save the pickled transfer function
-	
-
+	#Done
 	if pool is None or pool.is_master():
 		logdriver.info("DONE!!")
+
+
+#######################################################
+################PlaneSettingsTFR#######################
+#######################################################
+
+class PlaneSettingsTFR(PlaneSettings):
+	
+	_section = "PlaneSettingsTFR"
+
+	@classmethod
+	def get(cls,options):
+
+		#Section name
+		section = cls._section
+		
+		#Parent constructor + additional attributes
+		settings = super(PlaneSettingsTFR,cls).get(options)
+		settings.parent_plane_set = options.get(section,"parent_plane_set")
+		settings.cur2target = options.get(section,"cur2target")
+		settings.with_scale_factor = options.getboolean(section,"with_scale_factor")
+
+		#Return to user
+		return settings
