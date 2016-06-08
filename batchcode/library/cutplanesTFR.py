@@ -84,7 +84,14 @@ def planesTFR(pool,batch,settings,node_id):
 		while True:
 			
 			#Split the line in snapshot,distance,redshift
-			line = fp.readline().rstrip("\n").split(",")
+			line = fp.readline()
+		
+			#Break cycle if at the end
+			if not(line):
+				break
+
+			#Split line
+			line = line.rstrip("\n").split(",")
 			snapshot_number.append(int(line[0].split("=")[1]))
 		
 			d,unit = line[1].split("=")[1].split(" ")
@@ -110,7 +117,7 @@ def planesTFR(pool,batch,settings,node_id):
 	logdriver.info("Reading redshift mapping from {0}".format(cur2target_filename))
 	with open(cur2target_filename,"r") as fp:
 		cur2target_parsed = json.load(fp)
-		cur2target = ApproxDict((float(z),cur2target_parsed[z]) for z in cur2target)
+		cur2target = ApproxDict((float(z),cur2target_parsed[z]) for z in cur2target_parsed)
 
 	#Cycle over planes: for each plane, interpolate its values to the target redshift
 	info_filename = os.path.join(target_plane_set.storage,"info.txt")
@@ -130,7 +137,7 @@ def planesTFR(pool,batch,settings,node_id):
 			z_indices = bucket(target_redshift,redshift)
 
 			#Interpolate each cut point and normal
-			for ncut,cut in settings.cut_points:
+			for ncut,cut in enumerate(settings.cut_points):
 				for normal in settings.normals:
 
 					target_plane_name = os.path.join(target_plane_set.storage,settings.name_format.format(nsnap,settings.kind,ncut,normal,settings.format))
@@ -158,6 +165,7 @@ def planesTFR(pool,batch,settings,node_id):
 						
 						#Interpolate
 						t = (target_redshift - z1) / (z2 - z1)
+						logdriver.debug("Intepolation t={0:.2e}".format(t))
 						source_plane1.data = (1-t)*source_plane1.data + t*source_plane2.data 
 
 					
@@ -165,7 +173,7 @@ def planesTFR(pool,batch,settings,node_id):
 
 						#If out of the interpolation range, do nothing
 						source_plane_name = os.path.join(plane_set.storage,settings.name_format.format(snapshot_number[z_indices[0]],settings.kind,ncut,normal,settings.format)) 
-						logdriver.info("Target redshift {0} is out of interpolation range, plane is left unaltered")
+						logdriver.info("Target redshift {0} is out of interpolation range, plane is left unaltered".format(target_redshift))
 						logdriver.info("Reading plane at {0}".format(source_plane_name))
 						source_plane1 = PotentialPlane.load(source_plane_name)
 
