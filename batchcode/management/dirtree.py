@@ -74,7 +74,7 @@ class DirTree(object):
 		###File names####
 		#################
 
-		self.design_filename = "par_test.pkl"
+		self.design_filename = "par.pkl"
 		self.camb_lin_fileroot = "camb/camb_lin"
 		self.camb_nl_fileroot = "camb/camb_nl"
 		self.transfer_filename = "transfer_nl.pkl"
