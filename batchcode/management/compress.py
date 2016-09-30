@@ -1,4 +1,4 @@
-#!/usr/bin/env python-mpi
+#!/usr/bin/env python
 import os
 import argparse
 
