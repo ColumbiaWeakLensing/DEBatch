@@ -129,8 +129,8 @@ if __name__=="__main__":
 			#Measure the descriptors spreading calculations on a MPIPool
 			for c in range(chunks):
 				ensemble_all.append(Ensemble.compute(glob.glob(os.path.join(map_set.storage,"*.fits"))[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=convergence_power,pool=pool,map_set=map_set,l_edges=l_edges))
-				#ensemble_all.append(Ensemble.compute([ "WLconv_z{0:.2f}_{1:04d}r.fits".format(redshift,r+1) for r in range(realizations_per_chunk*c,realizations_per_chunk*(c+1)) ],callback_loader=convergence_peaks,pool=pool,map_set=map_set,kappa_edges=kappa_edges))
-				#ensemble_all.append(Ensemble.compute([ "WLconv_z{0:.2f}_{1:04d}r.fits".format(redshift,r+1) for r in range(realizations_per_chunk*c,realizations_per_chunk*(c+1)) ],callback_loader=convergence_moments,pool=pool,map_set=map_set))
+				#ensemble_all.append(Ensemble.compute(glob.glob(os.path.join(map_set.storage,"*.fits"))[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=convergence_peaks,pool=pool,map_set=map_set,kappa_edges=kappa_edges))
+				#ensemble_all.append(Ensemble.compute(glob.glob(os.path.join(map_set.storage,"*.fits"))[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=convergence_moments,pool=pool,map_set=map_set))
 
 			#Merge all the chunks
 			ensemble_all = Ensemble.concat(ensemble_all,axis=0,ignore_index=True)
