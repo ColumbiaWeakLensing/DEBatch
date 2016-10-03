@@ -1,7 +1,7 @@
-#!/usr/bin/env python-mpi
+#!/usr/bin/env python
 from __future__ import division
 
-import sys,os
+import sys,os,glob
 import logging
 
 from lenstools.image.convergence import ConvergenceMap
@@ -112,13 +112,13 @@ if __name__=="__main__":
 	logging.info("Measuring descriptors for simulation batch at {0}".format(batch.environment.home))
 
 	#Save for reference
-	np.save(os.path.join(collection.home_subdir,"ell_nb{0}.npy".format(len(l_edges)-1)),0.5*(l_edges[1:]+l_edges[:-1]))
-	#np.save(os.path.join(collection.home_subdir,"kappa_nb{0}.npy".format(len(kappa_edges)-1)),0.5*(kappa_edges[1:]+kappa_edges[:-1]))
+	np.save(os.path.join(batch.home,"ell_nb{0}.npy".format(len(l_edges)-1)),0.5*(l_edges[1:]+l_edges[:-1]))
+	#np.save(os.path.join(batch.home,"kappa_nb{0}.npy".format(len(kappa_edges)-1)),0.5*(kappa_edges[1:]+kappa_edges[:-1]))
 
 	for model in batch.models:
 
 		#Perform the measurements for all the map sets
-		for map_set in [model["c0"].mapsets]:
+		for map_set in model["c0"].mapsets:
 
 			#Log to user
 			logging.info("Processing model {0}, map set {1}".format(map_set.cosmo_id,map_set.settings.directory_name))
@@ -128,7 +128,7 @@ if __name__=="__main__":
 
 			#Measure the descriptors spreading calculations on a MPIPool
 			for c in range(chunks):
-				ensemble_all.append(Ensemble.compute([ "WLconv_z{0:.2f}_{1:04d}r.fits".format(redshift,r+1) for r in range(realizations_per_chunk*c,realizations_per_chunk*(c+1)) ],callback_loader=convergence_power,pool=pool,map_set=map_set,l_edges=l_edges))
+				ensemble_all.append(Ensemble.compute(glob.glob(os.path.join(map_set.storage,"*.fits"))[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=convergence_power,pool=pool,map_set=map_set,l_edges=l_edges))
 				#ensemble_all.append(Ensemble.compute([ "WLconv_z{0:.2f}_{1:04d}r.fits".format(redshift,r+1) for r in range(realizations_per_chunk*c,realizations_per_chunk*(c+1)) ],callback_loader=convergence_peaks,pool=pool,map_set=map_set,kappa_edges=kappa_edges))
 				#ensemble_all.append(Ensemble.compute([ "WLconv_z{0:.2f}_{1:04d}r.fits".format(redshift,r+1) for r in range(realizations_per_chunk*c,realizations_per_chunk*(c+1)) ],callback_loader=convergence_moments,pool=pool,map_set=map_set))
 
