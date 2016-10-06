@@ -33,7 +33,15 @@ variations2 = [ models[n] for n in [0,5,3] ]
 ###################################################################################################
 
 def pb2Bias(cmd_args,fontsize=22):
-	pass
+	
+	fig,ax = plt.subplots()
+
+	ell = np.load(os.path.join(batch.home,"ell_nb98.npy"))
+	p = np.load(os.path.join(fiducial["c0M0"].home,"power_s0_nb98.npy"))
+
+	ax.plot(ell,p.mean(0))
+
+	fig.savefig("pb2Bias."+cmd_args.type)
 
 ###################################################################################################
 ###################################################################################################
