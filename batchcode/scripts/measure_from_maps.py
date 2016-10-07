@@ -5,6 +5,8 @@ import sys,os,glob
 import logging
 
 from lenstools.image.convergence import ConvergenceMap
+from lenstools.image.noise import GaussianNoiseGenerator
+
 from lenstools.statistics.ensemble import Ensemble
 from lenstools.pipeline.simulation import SimulationBatch
 
@@ -18,7 +20,7 @@ from emcee.utils import MPIPool
 ##############Measure the power spectrum#####################################################
 #############################################################################################
 
-def convergence_power(fname,map_set,l_edges,smoothing_scale=0.0*u.arcmin):
+def convergence_power(fname,map_set,l_edges,z,add_shape_noise=False,smoothing_scale=0.0*u.arcmin):
 	
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
@@ -28,6 +30,10 @@ def convergence_power(fname,map_set,l_edges,smoothing_scale=0.0*u.arcmin):
 	
 		if smoothing_scale>0:
 			conv = conv.smooth(smoothing_scale,kind="gaussianFFT")
+
+		if add_shape_noise:
+			gen = GaussianNoiseGenerator.forMap(conv)
+			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname)))
 
 		l,Pl = conv.powerSpectrum(l_edges)
 		return Pl
@@ -39,7 +45,7 @@ def convergence_power(fname,map_set,l_edges,smoothing_scale=0.0*u.arcmin):
 ##############Peak counts#####################################################
 ##############################################################################
 
-def convergence_peaks(fname,map_set,kappa_edges,smoothing_scale=0.0*u.arcmin):
+def convergence_peaks(fname,map_set,kappa_edges,z,add_shape_noise=False,smoothing_scale=0.0*u.arcmin):
 	
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
@@ -49,6 +55,10 @@ def convergence_peaks(fname,map_set,kappa_edges,smoothing_scale=0.0*u.arcmin):
 	
 		if smoothing_scale>0:
 			conv = conv.smooth(smoothing_scale,kind="gaussianFFT")
+
+		if add_shape_noise:
+			gen = GaussianNoiseGenerator.forMap(conv)
+			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname)))
 
 		k,peaks = conv.peakCount(kappa_edges)
 		return peaks
@@ -61,13 +71,17 @@ def convergence_peaks(fname,map_set,kappa_edges,smoothing_scale=0.0*u.arcmin):
 ##############Moments#####################################################
 ##########################################################################
 
-def convergence_moments(fname,map_set,smoothing_scale=0.0*u.arcmin):
+def convergence_moments(fname,map_set,z,add_shape_noise=False,smoothing_scale=0.0*u.arcmin):
 	
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
 	
 		if smoothing_scale>0:
 			conv = conv.smooth(smoothing_scale,kind="gaussianFFT")
+
+		if add_shape_noise:
+			gen = GaussianNoiseGenerator.forMap(conv)
+			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname)))
 
 		return conv.moments(connected=True)
 
@@ -97,15 +111,17 @@ if __name__=="__main__":
 
 	#Redshift
 	redshift = 2.0
+	add_shape_noise = False
+
+	#Savename
+	savename = "power"
 
 	#What to measure
 	l_edges = np.arange(100,10000,100)
 	kappa_edges = np.linspace(-.05,.5,101)
 
-	#How many realizations
-	num_realizations = 1024
+	#How many chunks
 	chunks = 16
-	realizations_per_chunk = num_realizations // chunks
 
 	#Get a handle on the simulation batch
 	batch = SimulationBatch.current()
@@ -127,16 +143,20 @@ if __name__=="__main__":
 			ensemble_all = list()
 
 			#Measure the descriptors spreading calculations on a MPIPool
+			map_files = glob.glob(os.path.join(map_set.storage,"*.fits"))
+			num_realizations = len(map_files)
+			realizations_per_chunk = num_realizations // chunks
+
 			for c in range(chunks):
-				ensemble_all.append(Ensemble.compute(glob.glob(os.path.join(map_set.storage,"*.fits"))[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=convergence_power,pool=pool,map_set=map_set,l_edges=l_edges))
-				#ensemble_all.append(Ensemble.compute(glob.glob(os.path.join(map_set.storage,"*.fits"))[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=convergence_peaks,pool=pool,map_set=map_set,kappa_edges=kappa_edges))
-				#ensemble_all.append(Ensemble.compute(glob.glob(os.path.join(map_set.storage,"*.fits"))[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=convergence_moments,pool=pool,map_set=map_set))
+				ensemble_all.append(Ensemble.compute(map_files[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=convergence_power,pool=pool,map_set=map_set,l_edges=l_edges,z=redshift,add_shape_noise=add_shape_noise))
+				#ensemble_all.append(Ensemble.compute(map_files[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=convergence_peaks,pool=pool,map_set=map_set,kappa_edges=kappa_edges,z=redshift,add_shape_noise=add_shape_noise))
+				#ensemble_all.append(Ensemble.compute(map_files[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=convergence_moments,pool=pool,map_set=map_set,z=redshift,add_shape_noise=add_shape_noise))
 
 			#Merge all the chunks
 			ensemble_all = Ensemble.concat(ensemble_all,axis=0,ignore_index=True)
 
 			#Save to disk
-			savename = os.path.join(map_set.home_subdir,"power_s{0}_nb{1}.npy".format(0,ensemble_all.shape[1]))
+			savename = os.path.join(map_set.home_subdir,savename+"_s{0}_nb{1}.npy".format(0,ensemble_all.shape[1]))
 			logging.info("Writing {0}".format(savename))
 			np.save(savename,ensemble_all.values)
 
