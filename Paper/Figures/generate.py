@@ -11,6 +11,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from lenstools.pipeline.simulation import SimulationBatch
+
+from lenstools.statistics.ensemble import Ensemble
 from lenstools.statistics.constraints import FisherAnalysis
 
 #Options
@@ -26,22 +28,64 @@ batch = SimulationBatch.current()
 models = batch.models
 
 fiducial = models[4]
-variations1 = [ models[n] for n in [6,1,2] ]
-variations2 = [ models[n] for n in [0,5,3] ]
+variations = ( [ models[n] for n in [6,1,2] ] , [ models[n] for n in [0,5,3] ] )
+
+plab = { "Om":r"$\Omega_m$", "w0":r"$w_0$", "wa":r"$w_a$" }
 
 ###################################################################################################
 ###################################################################################################
 
-def pb2Bias(cmd_args,fontsize=22):
+def pbBias(cmd_args,feature_name="power_s0_nb98",variation_idx=0,fontsize=22):
 	
-	fig,ax = plt.subplots()
+	#Initialize plot
+	fig,ax = plt.subplots(1,3,figsize=(24,8))
 
-	ell = np.load(os.path.join(batch.home,"ell_nb98.npy"))
-	p = np.load(os.path.join(fiducial["c0M0"].home,"power_s0_nb98.npy"))
+	##################
+	#Load in the data#
+	##################
 
-	ax.plot(ell,p.mean(0))
+	features = dict()
+	parameters = dict()
 
-	fig.savefig("pb2Bias."+cmd_args.type)
+	for model in models:
+		features[model.cosmo_id] = Ensemble.read(os.path.join(model["c0"].getMapSet("kappaBorn").home,feature_name+".npy"))
+		parameters[model.cosmo_id] = np.array([model.cosmology.Om0,model.cosmology.w0,model.cosmology.wa])
+
+	###############################
+	#Initialize the FisherAnalysis#
+	###############################
+
+	ftr = np.array([features[m.cosmo_id].values.mean(0) for m in [fiducial] + variations[variation_idx]])
+	par = np.array([parameters[m.cosmo_id] for m in [fiducial] + variations[variation_idx]])
+	fisher = FisherAnalysis.from_features(ftr,par,parameter_index=["Om","w0","wa"])
+
+	###############################
+	#Compute the covariance matrix#
+	###############################
+
+	features_covariance = features[fiducial.cosmo_id].cov()
+
+	#############################################
+	#Load in the feature to fit, perform the fit#
+	#############################################
+
+	feature_born = features[fiducial.cosmo_id]
+	feature_ray = Ensemble.read(os.path.join(model["c0"].getMapSet("kappa").home,feature_name+".npy"))
+	fitted_parameters_born = fisher.fit(feature_born,features_covariance)
+	fitted_parameters_ray = fisher.fit(feature_ray,features_covariance)
+
+	##########
+	#Plotting#
+	##########
+
+	for n,p in enumerate(fisher.parameter_names):
+		fitted_parameters_born[p].plot.hist(bins=50,ax=ax[n],label="Born",alpha=0.4)
+		fitted_parameters_ray[p].plot.hist(bins=50,ax=ax[n],label="Ray",alpha=0.4)
+		ax[n].set_xlabel(plab[p],fontsize=18)
+		ax[n].legend()
+	
+	#Save
+	fig.savefig("bias_{0}.{1}".format(feature_name,cmd_args.type))
 
 ###################################################################################################
 ###################################################################################################
@@ -49,7 +93,7 @@ def pb2Bias(cmd_args,fontsize=22):
 
 #Method dictionary
 method = dict()
-method["1"] = pb2Bias
+method["1"] = pbBias
 
 #Main
 def main():
