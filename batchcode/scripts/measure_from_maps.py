@@ -118,7 +118,7 @@ if __name__=="__main__":
 
 	#Redshift
 	redshift = options["redshift"]
-	add_shape_noise = options["get_shape_noise"]
+	add_shape_noise = options["add_shape_noise"]
 
 	#Savename
 	savename = options["method"]
@@ -139,7 +139,7 @@ if __name__=="__main__":
 
 	#Get a handle on the simulation batch
 	batch = SimulationBatch.current()
-	logging.info("Measuring descriptors for simulation batch at {0}".format(batch.environment.home))
+	logging.info("Measuring {0} for simulation batch at {1}".format(options["method"],batch.environment.home))
 
 	#Save for reference
 	if l_edges is not None:
