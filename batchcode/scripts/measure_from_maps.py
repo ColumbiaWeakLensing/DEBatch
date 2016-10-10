@@ -122,6 +122,8 @@ if __name__=="__main__":
 
 	#Savename
 	savename = options["method"]
+	if add_shape_noise:
+		savename += "SN"
 
 	#What to measure
 	try:
