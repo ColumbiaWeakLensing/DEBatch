@@ -1,0 +1,11 @@
+{
+
+
+	"redshift" : 2.0,
+	"add_shape_noise" : false,
+	"multipoles" : [100,10000,101],
+	"kappa_thresholds" : [-0.05,0.5,101],
+	"chunks" : 16,
+	"method" : "convergence_power"
+	
+}
