@@ -34,7 +34,7 @@ def convergence_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
-			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname)))
+			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname))%4294967295)
 
 		l,Pl = conv.powerSpectrum(l_edges)
 		return Pl
@@ -59,7 +59,7 @@ def convergence_peaks(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
-			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname)))
+			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname))%4294967295)
 
 		k,peaks = conv.peakCount(kappa_edges)
 		return peaks
@@ -82,7 +82,7 @@ def convergence_moments(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=Fals
 
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
-			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname)))
+			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname))%4294967295)
 
 		return conv.moments(connected=True)
 
