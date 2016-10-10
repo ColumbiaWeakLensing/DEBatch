@@ -176,8 +176,8 @@ if __name__=="__main__":
 			ensemble_all = Ensemble.concat(ensemble_all,axis=0,ignore_index=True)
 
 			#Save to disk
-			savename = os.path.join(map_set.home_subdir,savename+"_s{0}_nb{1}.npy".format(0,ensemble_all.shape[1]))
-			logging.info("Writing {0}".format(savename))
+			ensemble_filename = os.path.join(map_set.home_subdir,savename+"_s{0}_nb{1}.npy".format(0,ensemble_all.shape[1]))
+			logging.info("Writing {0}".format(ensemble_filename))
 			np.save(savename,ensemble_all.values)
 
 	#Close pool and quit
