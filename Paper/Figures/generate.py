@@ -35,7 +35,7 @@ plab = { "Om":r"$\Omega_m$", "w0":r"$w_0$", "wa":r"$w_a$" }
 ###################################################################################################
 ###################################################################################################
 
-def pbBias(cmd_args,feature_name="power_s0_nb98",variation_idx=0,fontsize=22):
+def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",variation_idx=0,fontsize=22):
 	
 	#Initialize plot
 	fig,ax = plt.subplots(1,3,figsize=(24,8))
@@ -70,7 +70,7 @@ def pbBias(cmd_args,feature_name="power_s0_nb98",variation_idx=0,fontsize=22):
 	#############################################
 
 	feature_born = features[fiducial.cosmo_id]
-	feature_ray = Ensemble.read(os.path.join(model["c0"].getMapSet("kappa").home,feature_name+".npy"))
+	feature_ray = Ensemble.read(os.path.join(fiducial["c0"].getMapSet("kappa").home,feature_name+".npy"))
 	fitted_parameters_born = fisher.fit(feature_born,features_covariance)
 	fitted_parameters_ray = fisher.fit(feature_ray,features_covariance)
 
@@ -87,6 +87,9 @@ def pbBias(cmd_args,feature_name="power_s0_nb98",variation_idx=0,fontsize=22):
 	#Save
 	fig.savefig("bias_{0}.{1}".format(feature_name,cmd_args.type))
 
+def pbBiasSN(cmd_args,feature_name="convergence_powerSN_s0_nb100"):
+	pbBias(cmd_args,feature_name=feature_name)
+
 ###################################################################################################
 ###################################################################################################
 ###################################################################################################
@@ -94,6 +97,7 @@ def pbBias(cmd_args,feature_name="power_s0_nb98",variation_idx=0,fontsize=22):
 #Method dictionary
 method = dict()
 method["1"] = pbBias
+method["1b"] = pbBiasSN
 
 #Main
 def main():
