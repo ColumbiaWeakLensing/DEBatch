@@ -31,14 +31,16 @@ fiducial = models[4]
 variations = ( [ models[n] for n in [6,1,2] ] , [ models[n] for n in [0,5,3] ] )
 
 plab = { "Om":r"$\Omega_m$", "w0":r"$w_0$", "wa":r"$w_a$" }
+bounds = { "Om":(0.254,0.27), "w0":(-1.2,-0.85), "wa":(-0.5,0.5) }
 
 ###################################################################################################
 ###################################################################################################
 
-def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",variation_idx=0,fontsize=22):
+def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",variation_idx=(0,1),bootstrap_size=100,resample=1000,fontsize=22):
 	
 	#Initialize plot
-	fig,ax = plt.subplots(1,3,figsize=(24,8))
+	fig,ax = plt.subplots(len(variation_idx),3,figsize=(24,8*len(variation_idx)))
+	ax = np.atleast_2d(ax)
 
 	##################
 	#Load in the data#
@@ -52,37 +54,48 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",variation_idx=0,fo
 		parameters[model.cosmo_id] = np.array([model.cosmology.Om0,model.cosmology.w0,model.cosmology.wa])
 
 	###############################
-	#Initialize the FisherAnalysis#
-	###############################
-
-	ftr = np.array([features[m.cosmo_id].values.mean(0) for m in [fiducial] + variations[variation_idx]])
-	par = np.array([parameters[m.cosmo_id] for m in [fiducial] + variations[variation_idx]])
-	fisher = FisherAnalysis.from_features(ftr,par,parameter_index=["Om","w0","wa"])
-
-	###############################
 	#Compute the covariance matrix#
 	###############################
 
 	features_covariance = features[fiducial.cosmo_id].cov()
 
-	#############################################
-	#Load in the feature to fit, perform the fit#
-	#############################################
+	################################################
+	#Load in the feature to fit, bootstrap the mean#
+	################################################
 
-	feature_born = features[fiducial.cosmo_id]
-	feature_ray = Ensemble.read(os.path.join(fiducial["c0"].getMapSet("kappa").home,feature_name+".npy"))
-	fitted_parameters_born = fisher.fit(feature_born,features_covariance)
-	fitted_parameters_ray = fisher.fit(feature_ray,features_covariance)
+	bootstrap_mean = lambda e: e.values.mean(0)
 
-	##########
-	#Plotting#
-	##########
+	feature_born = features[fiducial.cosmo_id].bootstrap(bootstrap_mean,bootstrap_size=bootstrap_size,resample=resample)
+	feature_ray = Ensemble.read(os.path.join(fiducial["c0"].getMapSet("kappa").home,feature_name+".npy")).bootstrap(bootstrap_mean,bootstrap_size=bootstrap_size,resample=resample)
 
-	for n,p in enumerate(fisher.parameter_names):
-		fitted_parameters_born[p].plot.hist(bins=50,ax=ax[n],label="Born",alpha=0.4)
-		fitted_parameters_ray[p].plot.hist(bins=50,ax=ax[n],label="Ray",alpha=0.4)
-		ax[n].set_xlabel(plab[p],fontsize=18)
-		ax[n].legend()
+	for nv,v in enumerate(variation_idx):
+
+		###############################
+		#Initialize the FisherAnalysis#
+		###############################
+
+		ftr = np.array([features[m.cosmo_id].values.mean(0) for m in [fiducial] + variations[v]])
+		par = np.array([parameters[m.cosmo_id] for m in [fiducial] + variations[v]])
+		fisher = FisherAnalysis.from_features(ftr,par,parameter_index=["Om","w0","wa"])
+
+		#############
+		####Fit######
+		#############
+
+		fitted_parameters_born = fisher.fit(feature_born,features_covariance)
+		fitted_parameters_ray = fisher.fit(feature_ray,features_covariance)
+
+		##########
+		#Plotting#
+		##########
+
+		for n,p in enumerate(fisher.parameter_names):
+			fitted_parameters_born[p].plot.hist(bins=50,ax=ax[nv,n],label="Born",alpha=0.4)
+			fitted_parameters_ray[p].plot.hist(bins=50,ax=ax[nv,n],label="Ray",alpha=0.4)
+			ax[nv,n].set_xlabel(plab[p],fontsize=18)
+			ax[nv,n].set_title("Fisher {0}".format(v))
+			ax[nv,n].legend()
+			ax[nv,n].set_xlim(*bounds[p])
 	
 	#Save
 	fig.savefig("bias_{0}.{1}".format(feature_name,cmd_args.type))
