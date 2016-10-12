@@ -130,6 +130,38 @@ def pbBiasKurtSN(cmd_args,feature_name="convergence_kurtSN_s0_nb9"):
 	pbBias(cmd_args,feature_name=feature_name,callback=callback)
 
 ####################################################################################################################
+####################################################################################################################
+
+def pdfPlot(cmd_args,features,figname,fontsize=22):
+
+	#Initialize plot
+	fig,ax = plt.subplots()
+
+	#Load features and plot
+	for f in features:
+		model,mapset,name,bn = features[f]
+		fname = os.path.join(model["c0"].getMapSet(mapset).home,name+".npy")
+		samples = np.load(fname)[:,bn]
+		ax.hist(samples,bins=50,alpha=0.4,label=f)
+
+	#Legend 
+	ax.legend()
+
+	#Save
+	fig.savefig(figname+"."+cmd_args.type)
+
+####################################################################################################################
+
+def pdfSkew(cmd_args):
+
+	features = {
+		r"$S_0({\rm noiseless})$" : (fiducial,"kappa","convergence_moments_s0_nb9",2),
+		r"$S_0({\rm noise})$" : (fiducial,"kappa","convergence_momentsSN_s0_nb9",2)
+	}
+
+	figname = "pdfSkew"
+
+	pdfPlot(cmd_args,features=features,figname=figname)
 
 ###################################################################################################
 ###################################################################################################
@@ -140,12 +172,15 @@ method = dict()
 
 method["1"] = pbBiasPower
 method["1b"] = pbBiasPowerSN
+
 method["2"] = pbBiasMoments
 method["2b"] = pbBiasMomentsSN
 method["2c"] = pbBiasSkew
 method["2d"] = pbBiasSkewSN
 method["2e"] = pbBiasKurt
 method["2f"] = pbBiasKurtSN
+
+method["3"] = pdfSkew
 
 #Main
 def main():
