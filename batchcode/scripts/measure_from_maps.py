@@ -84,6 +84,9 @@ def convergence_moments(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=Fals
 			gen = GaussianNoiseGenerator.forMap(conv)
 			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname))%4294967295)
 
+		#Subtract mean
+		conv.data -= conv.data.mean()
+
 		return conv.moments(connected=True)
 
 	except IOError:
