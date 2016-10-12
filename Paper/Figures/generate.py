@@ -95,7 +95,6 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",callback=None,vari
 			ax[nv,n].set_xlabel(plab[p],fontsize=18)
 			ax[nv,n].set_title("Fisher {0}".format(v))
 			ax[nv,n].legend()
-			ax[nv,n].set_xlim(*bounds[p])
 	
 	#Save
 	fig.savefig("bias_{0}.{1}".format(feature_name,cmd_args.type))
