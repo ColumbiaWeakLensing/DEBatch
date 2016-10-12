@@ -36,7 +36,7 @@ bounds = { "Om":(0.254,0.27), "w0":(-1.2,-0.85), "wa":(-0.5,0.5) }
 ###################################################################################################
 ###################################################################################################
 
-def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",variation_idx=(0,1),bootstrap_size=100,resample=1000,fontsize=22):
+def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",callback=None,variation_idx=(0,1),bootstrap_size=100,resample=1000,fontsize=22):
 	
 	#Initialize plot
 	fig,ax = plt.subplots(len(variation_idx),3,figsize=(24,8*len(variation_idx)))
@@ -50,7 +50,7 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",variation_idx=(0,1
 	parameters = dict()
 
 	for model in models:
-		features[model.cosmo_id] = Ensemble.read(os.path.join(model["c0"].getMapSet("kappaBorn").home,feature_name+".npy"))
+		features[model.cosmo_id] = Ensemble.read(os.path.join(model["c0"].getMapSet("kappaBorn").home,feature_name+".npy"),callback_loader=callback)
 		parameters[model.cosmo_id] = np.array([model.cosmology.Om0,model.cosmology.w0,model.cosmology.wa])
 
 	###############################
@@ -66,7 +66,7 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",variation_idx=(0,1
 	bootstrap_mean = lambda e: e.values.mean(0)
 
 	feature_born = features[fiducial.cosmo_id].bootstrap(bootstrap_mean,bootstrap_size=bootstrap_size,resample=resample)
-	feature_ray = Ensemble.read(os.path.join(fiducial["c0"].getMapSet("kappa").home,feature_name+".npy")).bootstrap(bootstrap_mean,bootstrap_size=bootstrap_size,resample=resample)
+	feature_ray = Ensemble.read(os.path.join(fiducial["c0"].getMapSet("kappa").home,feature_name+".npy"),callback_loader=callback).bootstrap(bootstrap_mean,bootstrap_size=bootstrap_size,resample=resample)
 
 	for nv,v in enumerate(variation_idx):
 
@@ -100,8 +100,37 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",variation_idx=(0,1
 	#Save
 	fig.savefig("bias_{0}.{1}".format(feature_name,cmd_args.type))
 
-def pbBiasSN(cmd_args,feature_name="convergence_powerSN_s0_nb100"):
+####################################################################################################################
+
+def pbBiasPower(cmd_args,feature_name="convergence_power_s0_nb100"):
 	pbBias(cmd_args,feature_name=feature_name)
+
+def pbBiasPowerSN(cmd_args,feature_name="convergence_powerSN_s0_nb100"):
+	pbBias(cmd_args,feature_name=feature_name)
+
+def pbBiasMoments(cmd_args,feature_name="convergence_moments_s0_nb9"):
+	pbBias(cmd_args,feature_name=feature_name)
+
+def pbBiasMomentsSN(cmd_args,feature_name="convergence_momentsSN_s0_nb9"):
+	pbBias(cmd_args,feature_name=feature_name)
+
+def pbBiasSkew(cmd_args,feature_name="convergence_skew_s0_nb9"):
+	callback = lambda f:np.load(f.replace("skew","moments"))[:,2:5]
+	pbBias(cmd_args,feature_name=feature_name,callback=callback)
+
+def pbBiasSkewSN(cmd_args,feature_name="convergence_skewSN_s0_nb9"):
+	callback = lambda f:np.load(f.replace("skew","moments"))[:,2:5]
+	pbBias(cmd_args,feature_name=feature_name,callback=callback)
+
+def pbBiasKurt(cmd_args,feature_name="convergence_kurt_s0_nb9"):
+	callback = lambda f:np.load(f.replace("kurt","moments"))[:,5:]
+	pbBias(cmd_args,feature_name=feature_name,callback=callback)
+
+def pbBiasKurtSN(cmd_args,feature_name="convergence_kurtSN_s0_nb9"):
+	callback = lambda f:np.load(f.replace("kurt","moments"))[:,5:]
+	pbBias(cmd_args,feature_name=feature_name,callback=callback)
+
+####################################################################################################################
 
 ###################################################################################################
 ###################################################################################################
@@ -109,8 +138,15 @@ def pbBiasSN(cmd_args,feature_name="convergence_powerSN_s0_nb100"):
 
 #Method dictionary
 method = dict()
-method["1"] = pbBias
-method["1b"] = pbBiasSN
+
+method["1"] = pbBiasPower
+method["1b"] = pbBiasPowerSN
+method["2"] = pbBiasMoments
+method["2b"] = pbBiasMomentsSN
+method["2c"] = pbBiasSkew
+method["2d"] = pbBiasSkewSN
+method["2e"] = pbBiasKurt
+method["2f"] = pbBiasKurtSN
 
 #Main
 def main():
