@@ -3,8 +3,11 @@ from __future__ import division
 
 import sys,os,glob
 import logging
+import json
 
 from lenstools.image.convergence import ConvergenceMap
+from lenstools.image.noise import GaussianNoiseGenerator
+
 from lenstools.statistics.ensemble import Ensemble
 from lenstools.pipeline.simulation import SimulationBatch
 
@@ -18,7 +21,7 @@ from emcee.utils import MPIPool
 ##############Measure the power spectrum#####################################################
 #############################################################################################
 
-def convergence_power(fname,map_set,l_edges,smoothing_scale=0.0*u.arcmin):
+def convergence_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,smoothing_scale=0.0*u.arcmin):
 	
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
@@ -28,6 +31,10 @@ def convergence_power(fname,map_set,l_edges,smoothing_scale=0.0*u.arcmin):
 	
 		if smoothing_scale>0:
 			conv = conv.smooth(smoothing_scale,kind="gaussianFFT")
+
+		if add_shape_noise:
+			gen = GaussianNoiseGenerator.forMap(conv)
+			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname))%4294967295)
 
 		l,Pl = conv.powerSpectrum(l_edges)
 		return Pl
@@ -39,7 +46,7 @@ def convergence_power(fname,map_set,l_edges,smoothing_scale=0.0*u.arcmin):
 ##############Peak counts#####################################################
 ##############################################################################
 
-def convergence_peaks(fname,map_set,kappa_edges,smoothing_scale=0.0*u.arcmin):
+def convergence_peaks(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,smoothing_scale=0.0*u.arcmin):
 	
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
@@ -49,6 +56,10 @@ def convergence_peaks(fname,map_set,kappa_edges,smoothing_scale=0.0*u.arcmin):
 	
 		if smoothing_scale>0:
 			conv = conv.smooth(smoothing_scale,kind="gaussianFFT")
+
+		if add_shape_noise:
+			gen = GaussianNoiseGenerator.forMap(conv)
+			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname))%4294967295)
 
 		k,peaks = conv.peakCount(kappa_edges)
 		return peaks
@@ -61,13 +72,20 @@ def convergence_peaks(fname,map_set,kappa_edges,smoothing_scale=0.0*u.arcmin):
 ##############Moments#####################################################
 ##########################################################################
 
-def convergence_moments(fname,map_set,smoothing_scale=0.0*u.arcmin):
+def convergence_moments(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,smoothing_scale=0.0*u.arcmin):
 	
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
 	
 		if smoothing_scale>0:
 			conv = conv.smooth(smoothing_scale,kind="gaussianFFT")
+
+		if add_shape_noise:
+			gen = GaussianNoiseGenerator.forMap(conv)
+			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname))%4294967295)
+
+		#Subtract mean
+		conv.data -= conv.data.mean()
 
 		return conv.moments(connected=True)
 
@@ -80,7 +98,13 @@ def convergence_moments(fname,map_set,smoothing_scale=0.0*u.arcmin):
 
 if __name__=="__main__":
 
+	#Globals
 	logging.basicConfig(level=logging.INFO)
+	measurers = globals()
+
+	#Read options from json config file
+	with open(sys.argv[1],"r") as fp:
+		options = json.load(fp)
 
 	#Initialize MPIPool
 	try:
@@ -96,24 +120,41 @@ if __name__=="__main__":
 		sys.exit(0)
 
 	#Redshift
-	redshift = 2.0
+	redshift = options["redshift"]
+	add_shape_noise = options["add_shape_noise"]
+
+	#Savename
+	savename = options["method"]
+	if add_shape_noise:
+		savename += "SN"
 
 	#What to measure
-	l_edges = np.arange(100,10000,100)
-	kappa_edges = np.linspace(-.05,.5,101)
+	try:
+		l_edges = np.linspace(*options["multipoles"])
+	except TypeError:
+		l_edges = None
 
-	#How many realizations
-	num_realizations = 1024
-	chunks = 16
-	realizations_per_chunk = num_realizations // chunks
+	try:
+		kappa_edges = np.linspace(*options["kappa_thresholds"])
+	except TypeError:
+		kappa_edges = None
+
+	#How many chunks
+	chunks = options["chunks"]
 
 	#Get a handle on the simulation batch
 	batch = SimulationBatch.current()
-	logging.info("Measuring descriptors for simulation batch at {0}".format(batch.environment.home))
+	logging.info("Measuring {0} for simulation batch at {1}".format(options["method"],batch.environment.home))
 
 	#Save for reference
-	np.save(os.path.join(batch.home,"ell_nb{0}.npy".format(len(l_edges)-1)),0.5*(l_edges[1:]+l_edges[:-1]))
-	#np.save(os.path.join(batch.home,"kappa_nb{0}.npy".format(len(kappa_edges)-1)),0.5*(kappa_edges[1:]+kappa_edges[:-1]))
+	if l_edges is not None:
+		np.save(os.path.join(batch.home,"ell_nb{0}.npy".format(len(l_edges)-1)),0.5*(l_edges[1:]+l_edges[:-1]))
+	
+	if kappa_edges is not None:
+		np.save(os.path.join(batch.home,"kappa_nb{0}.npy".format(len(kappa_edges)-1)),0.5*(kappa_edges[1:]+kappa_edges[:-1]))
+
+	
+	#####################################################################################################################
 
 	for model in batch.models:
 
@@ -127,18 +168,20 @@ if __name__=="__main__":
 			ensemble_all = list()
 
 			#Measure the descriptors spreading calculations on a MPIPool
+			map_files = glob.glob(os.path.join(map_set.storage,"*.fits"))
+			num_realizations = len(map_files)
+			realizations_per_chunk = num_realizations // chunks
+
 			for c in range(chunks):
-				ensemble_all.append(Ensemble.compute(glob.glob(os.path.join(map_set.storage,"*.fits"))[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=convergence_power,pool=pool,map_set=map_set,l_edges=l_edges))
-				#ensemble_all.append(Ensemble.compute(glob.glob(os.path.join(map_set.storage,"*.fits"))[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=convergence_peaks,pool=pool,map_set=map_set,kappa_edges=kappa_edges))
-				#ensemble_all.append(Ensemble.compute(glob.glob(os.path.join(map_set.storage,"*.fits"))[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=convergence_moments,pool=pool,map_set=map_set))
+				ensemble_all.append(Ensemble.compute(map_files[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=measurers[options["method"]],pool=pool,map_set=map_set,l_edges=l_edges,kappa_edges=kappa_edges,z=redshift,add_shape_noise=add_shape_noise))
 
 			#Merge all the chunks
 			ensemble_all = Ensemble.concat(ensemble_all,axis=0,ignore_index=True)
 
 			#Save to disk
-			savename = os.path.join(map_set.home_subdir,"power_s{0}_nb{1}.npy".format(0,ensemble_all.shape[1]))
-			logging.info("Writing {0}".format(savename))
-			np.save(savename,ensemble_all.values)
+			ensemble_filename = os.path.join(map_set.home_subdir,savename+"_s{0}_nb{1}.npy".format(0,ensemble_all.shape[1]))
+			logging.info("Writing {0}".format(ensemble_filename))
+			np.save(ensemble_filename,ensemble_all.values)
 
 	#Close pool and quit
 	if pool is not None:
