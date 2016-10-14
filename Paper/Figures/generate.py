@@ -176,12 +176,15 @@ def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn","kappaBornRT"),figname
 	#Set up plot
 	fig,axes = plt.subplots(3,3,figsize=(24,)*2)
 
+	#Bootstrap mean to mimic LSST
+	bootstrap_mean = lambda e: e.values.mean(0)
+
 	#PDF for each kappa model
 	for km in kappa_models:
 
 		#Load samples
 		fname = os.path.join(fiducial["c0"].getMapSet(km).home,"convergence_moments_s0_nb9.npy")
-		samples = np.load(fname)
+		samples = Ensemble.read(fname).bootstrap(bootstrap_mean,bootstrap_size=1000,resample=1000)
 
 		#Plot each bin
 		for bn,ax in enumerate(axes.flatten()):
