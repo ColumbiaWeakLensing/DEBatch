@@ -27,8 +27,13 @@ parser.add_argument("fig",nargs="*")
 batch = SimulationBatch.current()
 models = batch.models
 
-fiducial = models[2]
-variations = ( [ models[n] for n in [0,4,3] ] , [ models[n] for n in [5,6,1] ] )
+fiducial = batch.getModel("Om0.260_Ode0.740_w-1.000_wa0.000_si0.800")
+variations = ( 
+
+	map(lambda m:batch.getModel(m),["Om0.290_Ode0.710_w-1.000_wa0.000_si0.800","Om0.260_Ode0.740_w-0.800_wa0.000_si0.800","Om0.260_Ode0.740_w-1.000_wa-0.200_si0.800"]),
+	map(lambda m:batch.getModel(m),["Om0.230_Ode0.770_w-1.000_wa0.000_si0.800","Om0.260_Ode0.740_w-1.200_wa0.000_si0.800","Om0.260_Ode0.740_w-1.000_wa-0.500_si0.800"])
+
+)
 
 plab = { "Om":r"$\Omega_m$", "w0":r"$w_0$", "wa":r"$w_a$" }
 bounds = { "Om":(0.254,0.27), "w0":(-1.2,-0.85), "wa":(-0.5,0.5) }
@@ -36,31 +41,37 @@ bounds = { "Om":(0.254,0.27), "w0":(-1.2,-0.85), "wa":(-0.5,0.5) }
 ###################################################################################################
 ###################################################################################################
 
-def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",callback=None,variation_idx=(0,1),bootstrap_size=100,resample=1000,fontsize=22):
+def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",kappa_models=("Born",),callback=None,variation_idx=(0,1),bootstrap_size=100,resample=1000,fontsize=22):
 	
 	#Initialize plot
 	fig,ax = plt.subplots(len(variation_idx),3,figsize=(24,8*len(variation_idx)))
 	ax = np.atleast_2d(ax)
 
-	#bootstrapping of the mean
-	bootstrap_mean = lambda e: e.values.mean(0)
-
 	##################
 	#Load in the data#
 	##################
 
-	featuresBorn = dict()
-	featuresBornRT = dict()
+	#Observation
+	bootstrap_mean = lambda e: e.values.mean(0)
+	feature_ray = Ensemble.read(os.path.join(fiducial["c0"].getMapSet("kappa").home,feature_name+".npy"),callback_loader=callback).bootstrap(bootstrap_mean,bootstrap_size=bootstrap_size,resample=resample)
+
+	#Containers for cosmological model
+	modelFeatures = dict()
+	for mf in kappa_models:
+		modelFeatures[mf] = dict()
+
 	parameters = dict()
 
-	names = ("Born","BornRT")
-
 	for model in models:
-		featuresBorn[model.cosmo_id] = Ensemble.read(os.path.join(model["c0"].getMapSet("kappaBorn").home,feature_name+".npy"),callback_loader=callback)
-		featuresBornRT[model.cosmo_id] = Ensemble.read(os.path.join(model["c0"].getMapSet("kappaBornRT").home,feature_name+".npy"),callback_loader=callback)
 		parameters[model.cosmo_id] = np.array([model.cosmology.Om0,model.cosmology.w0,model.cosmology.wa])
+		for mf in kappa_models:
+			modelFeatures[mf][model.cosmo_id] = Ensemble.read(os.path.join(model["c0"].getMapSet("kappa"+mf).home,feature_name+".npy"),callback_loader=callback)
 
-	for nn,features in enumerate((featuresBorn,featuresBornRT)):
+	#Fit each model
+	for mf in kappa_models:
+
+		#Select correct 
+		features = modelFeatures[mf]
 
 		###############################
 		#Compute the covariance matrix#
@@ -72,9 +83,7 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",callback=None,vari
 		#Load in the feature to fit, bootstrap the mean#
 		################################################
 	
-
 		feature_born = features[fiducial.cosmo_id].bootstrap(bootstrap_mean,bootstrap_size=bootstrap_size,resample=resample)
-		feature_ray = Ensemble.read(os.path.join(fiducial["c0"].getMapSet("kappa").home,feature_name+".npy"),callback_loader=callback).bootstrap(bootstrap_mean,bootstrap_size=bootstrap_size,resample=resample)
 
 		for nv,v in enumerate(variation_idx):
 
@@ -98,8 +107,8 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",callback=None,vari
 			##########
 
 			for n,p in enumerate(fisher.parameter_names):
-				fitted_parameters_born[p].plot.hist(bins=50,ax=ax[nv,n],label=names[nn]+"(Mock)",alpha=0.4)
-				fitted_parameters_ray[p].plot.hist(bins=50,ax=ax[nv,n],label=names[nn]+"(Observation)",alpha=0.4)
+				fitted_parameters_born[p].plot.hist(bins=50,ax=ax[nv,n],label=mf+"(Mock)",alpha=0.4)
+				fitted_parameters_ray[p].plot.hist(bins=50,ax=ax[nv,n],label=mf+"(Observation)",alpha=0.4)
 				
 				ax[nv,n].set_xlabel(plab[p],fontsize=18)
 				ax[nv,n].set_title("Fisher {0}".format(v))
@@ -117,7 +126,7 @@ def pbBiasPowerSN(cmd_args,feature_name="convergence_powerSN_s0_nb100"):
 	pbBias(cmd_args,feature_name=feature_name)
 
 def pbBiasMoments(cmd_args,feature_name="convergence_moments_s0_nb9"):
-	pbBias(cmd_args,feature_name=feature_name)
+	pbBias(cmd_args,feature_name=feature_name,kappa_models=("Born","BornRT"))
 
 def pbBiasMomentsSN(cmd_args,feature_name="convergence_momentsSN_s0_nb9"):
 	pbBias(cmd_args,feature_name=feature_name)
@@ -159,13 +168,42 @@ def pdfPlot(cmd_args,features,figname,fontsize=22):
 	#Save
 	fig.savefig(figname+"."+cmd_args.type)
 
+def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn","kappaBornRT"),figname="pdfMoments",fontsize=22):
+
+	#Moment labels
+	moment_labels = (r"$\sigma_0^2$",r"$\sigma_1^2$",r"$S_0$",r"$S_1$",r"$S_2$",r"$K_0$",r"$K_1$",r"$K_2$",r"$K_3$")
+
+	#Set up plot
+	fig,axes = plt.subplots(3,3,figsize=(24,)*2)
+
+	#PDF for each kappa model
+	for km in kappa_models:
+
+		#Load samples
+		fname = os.path.join(fiducial["c0"].getMapSet(km).home,"convergence_moments_s0_nb9.npy")
+		samples = np.load(fname)
+
+		#Plot each bin
+		for bn,ax in enumerate(axes.flatten()):
+			ax.hist(samples[:,bn],bins=50,alpha=0.4,label=km)
+
+	#Axes labels
+	for bn,ax in enumerate(axes.flatten()):
+		ax.legend()
+		ax.set_title(moment_labels[bn],fontsize=fontsize)
+
+	#Save
+	fig.tight_layout()
+	fig.savefig(figname+".{0}".format(cmd_args.type))
+
 ####################################################################################################################
 
 def pdfSkew(cmd_args):
 
 	features = {
-		r"$S_0({\rm noiseless})$" : (fiducial,"kappa","convergence_moments_s0_nb9",2),
-		r"$S_0({\rm noise})$" : (fiducial,"kappa","convergence_momentsSN_s0_nb9",2)
+		r"$S_0({\rm noiseless})$" : (fiducial,"kappa","convergence_moments_s0_nb9",3),
+		r"$S_0({\rm noiseless (Born)})$" : (fiducial,"kappaBorn","convergence_moments_s0_nb9",3),
+		r"$S_0({\rm noiseless (RT)})$" : (fiducial,"kappaBornRT","convergence_moments_s0_nb9",3)
 	}
 
 	figname = "pdfSkew"
@@ -189,7 +227,7 @@ method["2d"] = pbBiasSkewSN
 method["2e"] = pbBiasKurt
 method["2f"] = pbBiasKurtSN
 
-method["3"] = pdfSkew
+method["3"] = pdfMoments
 
 #Main
 def main():
