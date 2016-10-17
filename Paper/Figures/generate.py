@@ -30,13 +30,12 @@ models = batch.models
 fiducial = batch.getModel("Om0.260_Ode0.740_w-1.000_wa0.000_si0.800")
 variations = ( 
 
-	map(lambda m:batch.getModel(m),["Om0.290_Ode0.710_w-1.000_wa0.000_si0.800","Om0.260_Ode0.740_w-0.800_wa0.000_si0.800","Om0.260_Ode0.740_w-1.000_wa-0.200_si0.800"]),
-	map(lambda m:batch.getModel(m),["Om0.230_Ode0.770_w-1.000_wa0.000_si0.800","Om0.260_Ode0.740_w-1.200_wa0.000_si0.800","Om0.260_Ode0.740_w-1.000_wa-0.500_si0.800"])
+	map(lambda m:batch.getModel(m),["Om0.290_Ode0.710_w-1.000_wa0.000_si0.800","Om0.260_Ode0.740_w-0.800_wa0.000_si0.800","Om0.260_Ode0.740_w-1.000_wa0.000_si0.900"]),
+	map(lambda m:batch.getModel(m),["Om0.230_Ode0.770_w-1.000_wa0.000_si0.800","Om0.260_Ode0.740_w-1.200_wa0.000_si0.800","Om0.260_Ode0.740_w-1.000_wa0.000_si0.700"])
 
 )
 
-plab = { "Om":r"$\Omega_m$", "w0":r"$w_0$", "wa":r"$w_a$" }
-bounds = { "Om":(0.254,0.27), "w0":(-1.2,-0.85), "wa":(-0.5,0.5) }
+plab = { "Om":r"$\Omega_m$", "w0":r"$w_0$", "wa":r"$w_a$", "si8":r"$\sigma_8$" }
 
 ###################################################################################################
 ###################################################################################################
@@ -63,7 +62,7 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",kappa_models=("Bor
 	parameters = dict()
 
 	for model in models:
-		parameters[model.cosmo_id] = np.array([model.cosmology.Om0,model.cosmology.w0,model.cosmology.wa])
+		parameters[model.cosmo_id] = np.array([model.cosmology.Om0,model.cosmology.w0,model.cosmology.sigma8])
 		for mf in kappa_models:
 			modelFeatures[mf][model.cosmo_id] = Ensemble.read(os.path.join(model["c0"].getMapSet("kappa"+mf).home,feature_name+".npy"),callback_loader=callback)
 
@@ -93,7 +92,7 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",kappa_models=("Bor
 
 			ftr = np.array([features[m.cosmo_id].values.mean(0) for m in [fiducial] + variations[v]])
 			par = np.array([parameters[m.cosmo_id] for m in [fiducial] + variations[v]])
-			fisher = FisherAnalysis.from_features(ftr,par,parameter_index=["Om","w0","wa"])
+			fisher = FisherAnalysis.from_features(ftr,par,parameter_index=["Om","w0","si8"])
 
 			#############
 			####Fit######
