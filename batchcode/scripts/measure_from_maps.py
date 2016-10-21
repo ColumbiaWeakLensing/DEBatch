@@ -21,7 +21,7 @@ from emcee.utils import MPIPool
 ##############Measure the power spectrum#####################################################
 #############################################################################################
 
-def convergence_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,smoothing_scale=0.0*u.arcmin):
+def convergence_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing_scale=0.0*u.arcmin):
 	
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
@@ -34,7 +34,7 @@ def convergence_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
-			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname))%4294967295)
+			conv = conv + gen.getShapeNoise(z=z,ngal=ngal*(u.arcmin**-2),seed=hash(os.path.basename(fname))%4294967295)
 
 		l,Pl = conv.powerSpectrum(l_edges)
 		return Pl
@@ -46,7 +46,7 @@ def convergence_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 ##############Peak counts#####################################################
 ##############################################################################
 
-def convergence_peaks(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,smoothing_scale=0.0*u.arcmin):
+def convergence_peaks(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing_scale=0.0*u.arcmin):
 	
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
@@ -59,7 +59,7 @@ def convergence_peaks(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
-			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname))%4294967295)
+			conv = conv + gen.getShapeNoise(z=z,ngal=ngal*(u.arcmin**-2),seed=hash(os.path.basename(fname))%4294967295)
 
 		k,peaks = conv.peakCount(kappa_edges)
 		return peaks
@@ -72,7 +72,7 @@ def convergence_peaks(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 ##############Moments#####################################################
 ##########################################################################
 
-def convergence_moments(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,smoothing_scale=0.0*u.arcmin):
+def convergence_moments(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing_scale=0.0*u.arcmin):
 	
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
@@ -82,7 +82,7 @@ def convergence_moments(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=Fals
 
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
-			conv = conv + gen.getShapeNoise(z=z,seed=hash(os.path.basename(fname))%4294967295)
+			conv = conv + gen.getShapeNoise(z=z,ngal=ngal*(u.arcmin**-2),seed=hash(os.path.basename(fname))%4294967295)
 
 		#Subtract mean
 		conv.data -= conv.data.mean()
@@ -122,11 +122,12 @@ if __name__=="__main__":
 	#Redshift
 	redshift = options["redshift"]
 	add_shape_noise = options["add_shape_noise"]
+	ngal = options["ngal"]
 
 	#Savename
 	savename = options["method"]
 	if add_shape_noise:
-		savename += "SN"
+		savename += "SN{0}".format(ngal)
 
 	#What to measure
 	try:
@@ -173,7 +174,7 @@ if __name__=="__main__":
 			realizations_per_chunk = num_realizations // chunks
 
 			for c in range(chunks):
-				ensemble_all.append(Ensemble.compute(map_files[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=measurers[options["method"]],pool=pool,map_set=map_set,l_edges=l_edges,kappa_edges=kappa_edges,z=redshift,add_shape_noise=add_shape_noise))
+				ensemble_all.append(Ensemble.compute(map_files[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=measurers[options["method"]],pool=pool,map_set=map_set,l_edges=l_edges,kappa_edges=kappa_edges,z=redshift,add_shape_noise=add_shape_noise,ngal=ngal))
 
 			#Merge all the chunks
 			ensemble_all = Ensemble.concat(ensemble_all,axis=0,ignore_index=True)
