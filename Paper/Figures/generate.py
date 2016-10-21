@@ -130,6 +130,9 @@ def pbBiasMoments(cmd_args,feature_name="convergence_moments_s0_nb9"):
 def pbBiasMomentsSN(cmd_args,feature_name="convergence_momentsSN_s0_nb9"):
 	pbBias(cmd_args,feature_name=feature_name)
 
+def pbBiasMomentsSN45(cmd_args,feature_name="convergence_momentsSN45_s0_nb9"):
+	pbBias(cmd_args,feature_name=feature_name)
+
 def pbBiasSkew(cmd_args,feature_name="convergence_skew_s0_nb9"):
 	callback = lambda f:np.load(f.replace("skew","moments"))[:,2:5]
 	pbBias(cmd_args,feature_name=feature_name,callback=callback)
@@ -224,6 +227,7 @@ method["1b"] = pbBiasPowerSN
 
 method["2"] = pbBiasMoments
 method["2b"] = pbBiasMomentsSN
+method["2b45"] = pbBiasMomentsSN45
 method["2c"] = pbBiasSkew
 method["2d"] = pbBiasSkewSN
 method["2e"] = pbBiasKurt
