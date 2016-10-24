@@ -42,6 +42,34 @@ def convergence_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 	except IOError:
 		return None
 
+##########################################################################################
+##############Measure the cross power#####################################################
+##########################################################################################
+
+def cross_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing_scale=0.0*u.arcmin,cross="kappaGP"):
+
+	try:
+		conv = ConvergenceMap.load(map_set.path(fname))
+		conv2 = ConvergenceMap.load(map_set.path(fname).replace(map_set.name,cross))
+
+		if "0001r" in fname:
+			np.save(os.path.join(map_set.home_subdir,"num_ell_nb{0}.npy".format(len(l_edges)-1)),conv.countModes(l_edges))
+	
+		if smoothing_scale>0:
+			conv = conv.smooth(smoothing_scale,kind="gaussianFFT")
+			conv2 = conv2.smooth(smoothing_scale,kind="gaussianFFT")
+
+		if add_shape_noise:
+			gen = GaussianNoiseGenerator.forMap(conv)
+			conv = conv + gen.getShapeNoise(z=z,ngal=ngal*(u.arcmin**-2),seed=hash(os.path.basename(fname))%4294967295)
+			conv2 = conv2 + gen.getShapeNoise(z=z,ngal=ngal*(u.arcmin**-2),seed=hash(os.path.basename(fname))%4294967295)
+
+		l,Pl = conv.cross(conv2,l_edges=l_edges)
+		return Pl
+
+	except IOError:
+		return None
+
 ##############################################################################
 ##############Peak counts#####################################################
 ##############################################################################
