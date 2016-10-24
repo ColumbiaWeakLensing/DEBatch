@@ -35,7 +35,7 @@
 
 \begin{document}
 
-\title{On the validity of the Born approximation for Weak Lensing convergence moments}
+\title{On the validity of the Born approximation for Weak Lensing observables}
 
 \author{Andrea Petri}
 \email{apetri@phys.columbia.edu}
@@ -53,7 +53,7 @@
 \label{firstpage}
 
 \begin{abstract}
-
+Accurate forward modeling of Weak Lensing (WL) observables from cosmological parameters is a necessary tool for upcoming galaxy surveys. Because WL probes structures in the non--linear regime, analytical forward modeling is very challenging, if not impossible. Numerical simulations of WL features rely on ray--tracing through the outputs of $N$--body simulations, which requires knowledge of the gravitational potential and accurate solvers for light ray trajectories. A cheaper but less accurate procedure based on the Born approximation, on the other hand, requires knowledge of the density only and can be implemented more efficiently and at lower computational cost. In this work we show that geodesic perturbations are the dominant cause of inaccuracy in the Born approximation, lens-lens couplings being negligible. We also show that, although the Born approximation does not accurately predict WL convergence moments in the noiseless case, once galaxy shape noise is added the loss of accuracy is negligible even for a LSST--like survey.   
 \end{abstract}
 
 
@@ -66,27 +66,119 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%% INTRO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Introduction}
-% 
+%
+Weak Gravitational Lensing is a promising observational technique to probe the standard $w$CDM model of the universe, and can help in constraining the Dark Energy equation of state parameters \citep{wlreview}. Accurate forward modeling of WL observables is crucial for parameter estimation purposes. This however is a challenging problem due to the non--linear nature of WL image fields. Numerical efforts for feature forward modeling are based on ray--tracing simulations that make use of the multi--lens--plane algorithm \citep{RayTracingJain,RayTracingHartlap} to predict cosmic shear from outputs of $N$--body simulations. Approximate techniques based on the Born approximation allow for a computationally cheaper, but potentially inaccurate, forward modeling \citep{RayTracingHartlap} which requires only knowledge of the matter density contrast integrated along the observer unperturbed line of sight. A variety of groups have studied the validity of the Born approximation for forward modeling of convergence power spectra and bi--spectra \citep{WLBispectrumDodelson}, spectra of WL cosmic flexions \citep{BornFlexion} and, in more recent work, CMB lensing bi--spectra \citep{CMBPrattenLewis}. In this work we focus on a numerical study of the Born approximation validity for forward modeling of a subset convergence real space low order moments. The paper is organized as follows: we give a brief review of the ray--tracing formalism, along with the Born approximation and its lowest order corrections. We then outline how cosmological parameter constraints can be derived from WL features. Finally, we summarize our main findings and discuss possible future developments of this study.       
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% SIMULATIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Simulations}
 % 
+In this section we give an overview of the formalism behind WL simulations. WL observables are related to the matter density contrast $\delta$. Light rays crossing density inhomogeneities experience deflections, which cause observed galaxy shapes to be distorted. Modeling of image distortions can be done by computing light ray geodesics in the density field $\delta$. To simulate the matter density field we make use of the public code \ttt{Gadget2} \citep{Gadget2} and we run $N$--body simulations with a box size of $L_b=260\,{\rm Mpc}/h$ and $N_p=512^3$ particles, which corresponds to a mass resolution of $M_p\approx 10^{10}M_\odot$ per particle. We then perform a grid--based density estimation based on the position of the particles at different times. From the three dimensional density contrast $\delta$, the two dimensional lensing potential $\Phi$ can be inferred by solving the Poisson equation 
+
+\begin{equation}
+\label{sim:poisson}
+\nabla_\perp^2\Phi(\bb{x}_\perp,\chi) = \frac{3H_0^2\Omega_m}{2c^2a(\chi)} \delta(\bb{x}_\perp,\chi)
+\end{equation} 
+%
+Where we indicated the transverse comoving coordinates as $\bb{x}_\perp$, the longitudinal comoving distance as $\chi$, the universe scale factor as $a$ and as $H_0$,$\Omega_m$ the Hubble parameter and the matter density parameter respectively. The time dependence of $\Phi,\delta$ has been absorbed in $\chi$ with the use of the distance--redshift relation. Under the flat sky approximation, the transverse coordinates $\bb{x}_\perp$ can be related as the angles as seen from an Earth based observer $\pmb{\beta}=\bb{x}_\perp/\chi$. In the following paragraph we give a summary of the ray--tracing basics.   
 
 \subsection{Ray tracing}
+Light ray trajectories correspond to null geodesics in the space--time metric induced by the density fluctuations $\delta(\bb{x}_\perp,\chi)$. It can be shown that with the spacetime parametrization adopted in this section, the geodesic equation takes the form (see \citep{BornFlexion} for a possible reference)
+
+\begin{equation}
+\label{sim:geodiff}
+\frac{d^2 \bb{x}_\perp(\chi)}{d\chi^2} = -2\nabla_\perp \Phi(\bb{x}_\perp,\chi)
+\end{equation}
+%
+Equation (\ref{sim:geodiff}) can be directly integrated to express its solution $\bb{x}_\perp(\chi)$ in explicit form (see \citep{DodelsonWL}) 
+
+\begin{equation}
+\label{sim:geosol}
+\bb{x}_\perp(\chi_s) = \bb{x}_\perp(0) -2\int_0^{\chi_s} d\chi (\chi_s-\chi) \nabla_\perp \Phi(\bb{x}_\perp(\chi),\chi)
+\end{equation}
+%
+Where $\chi_s$ is the source galaxy comoving distance. WL observables are related to the differential deflection that nearby light rays experience when traveling from the observer to the source. Indicating with $\pmb{\theta}$ the starting angular position of a light ray at $\chi=0$ and with $\pmb{\beta}_s$ the angular position of the light ray at $\chi=\chi_s$, we are interested in the Jacobian matrix $\bb{A}_s(\pmb{\theta})=\partial\pmb{\beta}_s(\pmb{\theta})/\partial \pmb{\theta}$, which is usually parametrized as 
+
+\begin{equation}
+\bb{A}_s(\pmb{\theta}) = 
+\begin{pmatrix}
+1-\kappa(\pmb{\theta})-\gamma^1(\pmb{\theta}) & -\gamma^2(\pmb{\theta}) + \omega(\pmb{\theta}) \\
+-\gamma^2(\pmb{\theta}) - \omega(\pmb{\theta}) & 1-\kappa(\pmb{\theta})+\gamma^1(\pmb{\theta})
+\end{pmatrix}
+\end{equation}
+%
+Where $\kappa,\pmb{\gamma},\omega$ refer respectively to the WL cosmic convergence, shear and rotation angle. The implicit solution (\ref{sim:geosol}) to the geodesic equation (\ref{sim:geodiff}) can be translated in an integral equation for the lensing Jacobian
+
+\begin{widetext}
+\begin{equation}
+\label{sim:jacsol}
+A_{ij}(\pmb{\theta},\chi_s) = \delta^K_{ij}-2\int_0^{\chi_s} d\chi\chi W(\chi,\chi_s)\Phi_{ik}(\bb{x}_\perp(\chi,\pmb{\theta}),\chi)A_{kj}(\pmb{\theta},\chi)
+\end{equation} 
+\end{widetext}
+%
+We indicated the partial derivatives of the lensing potential $\Phi$ with respect to the transverse coordinates $x,y$ as subscripts. We also defined the single redshift source lensing kernel $W(\chi,\chi_s)=1-\chi/\chi_s$ and indicated the Kronecker delta symbol as $\delta^K$. The WL convergence $\kappa(\pmb{\theta},\chi_s)$ can be calculated from the trace of the Jacobian
+\begin{equation}
+\kappa(\pmb{\theta},\chi_s) = 1-\frac{1}{2}{\rm tr}\left[\bb{A}(\pmb{\theta},\chi_s)\right]
+\end{equation}
+%
+The implicit form of equation (\ref{sim:jacsol}) suggests a straightforward way to solve the geodesic equation numerically because $A(\pmb{\theta},\chi_s)$ can be expressed once one knows $A(\pmb{\theta},\chi)$ for $\chi<\chi_s$. The multi--lens--plane algorithm \citep{RayTracingJain,RayTracingHartlap} is a popular method to compute the integral in (\ref{sim:jacsol}) in discrete steps (lenses) by keeping track of the intermediate values $A(\pmb{\theta},\chi)$ using dynamic programming. To carry out the geodesic calculations we make use of the \ttt{LensTools} software package \citep{LensTools-paper}, which provides a {\sc python} implementation of the multi--lens--plane algorithm. The exact solution of (\ref{sim:geodiff}) based on (\ref{sim:jacsol}) is computationally expensive because it requires knowledge of the lensing potential $\Phi$. In the next paragraph we review the details of a computationally cheaper but approximate approach based on the Born approximation.     
 
 \subsection{Born approximation}
+The integral in (\ref{sim:jacsol}) can be approximated using a series expansion in powers of $\Phi$, which can yield acceptable results in the limit in which $\Phi$ is small. To compute the lowest order approximation to (\ref{sim:jacsol}) one notes that the lensing potential appears on the right hand side and hence we can replace the Jacobian on the right hand side with its zeroth order expression, i.e. the identity matrix. We can also replace the real ray trajectory $\bb{x}_\perp(\chi,\pmb{\theta})$ with the unperturbed one, i.e. $\chi\pmb{\theta}$. This yields an expression for $\kappa$ at first order in $\Phi$
+
+\begin{equation}
+\label{sim:born}
+\kappa^{\rm born}(\pmb{\theta},\chi_s) = \frac{3H_0^2\Omega_m}{2c^2}\int_0^{\chi_s} d\chi\frac{\chi}{a(\chi)} W(\chi,\chi_s)\delta(\chi\pmb{\theta},\chi)
+\end{equation}
+%
+The Born approximated convergence in equation (\ref{sim:born}) has a simple interpretation: at lowest order in the lensing potential, $\kappa$ is the integrated matter density on the unperturbed line of sight, weighted by the lensing kernel $W$. Contrary to the exact ray--tracing approach, the Born approximation does not required knowledge of the solution to the Poisson equation (\ref{sim:poisson}) and is hence computationally cheaper. In the next paragraph we examine the corrections to the Born approximation that come at second order in the potential $\Phi$.  
 
 \subsection{Post Born corrections}
+Equation (\ref{sim:jacsol}) allows to express the convergence $\kappa$ at arbitrary high orders in $\Phi$ powers. The linear order expression corresponds to the Born approximation in equation (\ref{sim:born}). At second order in $\Phi$ we can write, following \citep{WLBispectrumDodelson}
+
+\begin{equation}
+\kappa = \kappa^{\rm born} + \kappa^{\rm lens-lens} + \kappa^{\rm geodesic} + O(\Phi^3)
+\end{equation}
+%
+The second order corrections can be expressed as double integrals along the unperturbed line of sight
+
+\begin{widetext}
+
+\begin{equation}
+\label{sim:ll}
+\kappa^{\rm lens-lens}(\pmb{\theta},\chi_s) = \int_0^{\chi_s}d\chi\int_0^\chi d\chi' \chi\chi' W(\chi,\chi_s)W(\chi',\chi_s)\Phi_{ij}(\chi\pmb{\theta},\chi)\Phi_{ij}(\chi'\pmb{\theta},\chi')
+\end{equation}
+
+\begin{equation}
+\label{sim:gp}
+\kappa^{\rm geodesic}(\pmb{\theta},\chi_s) = \frac{3H_0^2\Omega_m}{2c^2}\int_0^{\chi_s}d\chi\int_0^\chi d\chi' \frac{\chi\chi'}{a(\chi')} W(\chi,\chi_s)W(\chi',\chi_s)\nabla_\perp\Phi(\chi\pmb{\theta},\chi)\cdot\nabla_\perp\delta(\chi'\pmb{\theta},\chi')
+\end{equation}
+
+\end{widetext}
+%
+These second order expression have a simple physical interpretation. Equation (\ref{sim:ll}) encodes the post--Born correction to the convergence due to non local quadratic lens--lens couplings, which add to the density line of sight integration in (\ref{sim:born}). Equation (\ref{sim:gp}), on the other hand, encodes the integral of the density contrast on the real light ray trajectory, at lowest order in the geodesic deflections. We computed the line of sight integrals (\ref{sim:born}), (\ref{sim:ll}) and (\ref{sim:gp}) using the functionality of the \ttt{LensTools} suite \citep{LensTools-paper}. A sample of the simulation outputs is shown in Figure \ref{fig:csample}.  
+
+\begin{figure*}
+\begin{center}
+\includegraphics[scale=0.4]{Figures/csample.eps}
+\end{center}
+\caption{Sample convergence outputs for one realization of a $(3.5\,{\rm deg})^2$ field of view. The figure shows the convergence profile (top left), along with the Born approximation residuals (top right), the lens-lens post--Born contribution (bottom left) and the geodesic contribution (bottom right). The images have been smoothed with a Gaussian kernel of size $\theta_G=0.5^\prime$.}
+\label{fig:csample}
+\end{figure*} 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Parameter inference}
 % 
+The parameter estimator (\ref{par:fisherest})
+\begin{equation}
+\label{par:fisherest}
+\bbh{p} = \bb{p}_0 + (\bb{M\Psi M}^T)^{-1} \bb{M\Psi} (\bbh{d}-\bb{d}_0)
+\end{equation}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%% DISCUSSION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%% RESULTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Discussion}
+\section{Results}
 % 
 %%%%%%%%%%%%%%%%%%%%%%%%%% CONCLUSIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

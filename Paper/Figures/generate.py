@@ -9,9 +9,11 @@ import itertools
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import astropy.units as u
 
 from lenstools.pipeline.simulation import SimulationBatch
 
+from lenstools.image.convergence import ConvergenceMap
 from lenstools.statistics.ensemble import Ensemble
 from lenstools.statistics.constraints import FisherAnalysis
 
@@ -36,6 +38,40 @@ variations = (
 )
 
 plab = { "Om":r"$\Omega_m$", "w0":r"$w_0$", "wa":r"$w_a$", "si8":r"$\sigma_8$" }
+
+###################################################################################################
+###################################################################################################
+
+def convergenceVisualize(cmd_args,smooth=0.5*u.arcmin,fontsize=22):
+
+	#Initialize plot
+	fig,ax = plt.subplots(2,2,figsize=(16,16))
+
+	#Load data
+	cborn = ConvergenceMap.load(os.path.join(fiducial["c0"].getMapSet("kappaBorn").home,"born_z2.00_0001r.fits"))
+	cray = ConvergenceMap.load(os.path.join(fiducial["c0"].getMapSet("kappa").home,"WLconv_z2.00_0001r.fits"))
+	cll = ConvergenceMap.load(os.path.join(fiducial["c0"].getMapSet("kappaGP").home,"postBorn2-ll_z2.00_0001r.fits"))
+	cgp = ConvergenceMap.load(os.path.join(fiducial["c0"].getMapSet("kappaGP").home,"postBorn2-gp_z2.00_0001r.fits"))
+
+	#Smooth
+	for c in (cborn,cray,cll,cgp):
+		c.smooth(smooth,kind="gaussianFFT",inplace=True)
+
+	#Plot
+	cray.visualize(colorbar=True,fig=fig,ax=ax[0,0])
+	(cray+cborn*-1).visualize(colorbar=True,fig=fig,ax=ax[0,1])
+	cll.visualize(colorbar=True,fig=fig,ax=ax[1,0])
+	cgp.visualize(colorbar=True,fig=fig,ax=ax[1,1])
+
+	#Titles
+	ax[0,0].set_title(r"$\kappa$",fontsize=fontsize)
+	ax[0,1].set_title(r"$\kappa-\kappa^{\rm born}$",fontsize=fontsize)
+	ax[1,0].set_title(r"$\kappa^{\rm lens-lens}$",fontsize=fontsize)
+	ax[1,1].set_title(r"$\kappa^{\rm geodesic}$",fontsize=fontsize)
+
+	#Save
+	fig.tight_layout()
+	fig.savefig("csample."+cmd_args.type)
 
 ###################################################################################################
 ###################################################################################################
@@ -222,6 +258,7 @@ def pdfSkew(cmd_args):
 #Method dictionary
 method = dict()
 
+method["0"] = convergenceVisualize
 method["1"] = pbBiasPower
 method["1b"] = pbBiasPowerSN
 
