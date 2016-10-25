@@ -82,7 +82,7 @@ def convergence_peaks(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 		if "0001r" in fname:
 			np.save(os.path.join(map_set.home_subdir,"th_peaks_nb{0}.npy".format(len(kappa_edges)-1)),0.5*(kappa_edges[1:]+kappa_edges[:-1]))
 	
-		if smoothing_scale>0:
+		if smoothing>0.:
 			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
 
 		if add_shape_noise:
@@ -105,7 +105,7 @@ def convergence_moments(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=Fals
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
 	
-		if smoothing_scale>0:
+		if smoothing>0.:
 			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
 
 		if add_shape_noise:
