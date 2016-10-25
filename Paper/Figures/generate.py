@@ -9,7 +9,10 @@ import itertools
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 import astropy.units as u
+
+sns.set(font_scale=2)
 
 from lenstools.pipeline.simulation import SimulationBatch
 
@@ -68,6 +71,11 @@ def convergenceVisualize(cmd_args,smooth=0.5*u.arcmin,fontsize=22):
 	ax[0,1].set_title(r"$\kappa-\kappa^{\rm born}$",fontsize=fontsize)
 	ax[1,0].set_title(r"$\kappa^{\rm lens-lens}$",fontsize=fontsize)
 	ax[1,1].set_title(r"$\kappa^{\rm geodesic}$",fontsize=fontsize)
+
+	#Switch off grids
+	for i in (0,1):
+		for j in (0,1):
+			ax[i,j].grid(b=False) 
 
 	#Save
 	fig.tight_layout()
@@ -209,7 +217,14 @@ def pdfPlot(cmd_args,features,figname,fontsize=22):
 def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn","kappaBornRT"),figname="pdfMoments",fontsize=22):
 
 	#Moment labels
-	moment_labels = (r"$\sigma_0^2$",r"$\sigma_1^2$",r"$S_0$",r"$S_1$",r"$S_2$",r"$K_0$",r"$K_1$",r"$K_2$",r"$K_3$")
+	moment_labels = (
+		r"$\langle\kappa^2\rangle$",r"$\langle\vert\nabla\kappa\vert^2\rangle$",
+		r"$\langle\kappa^3\rangle$",r"$\langle\kappa^2\nabla^2\kappa\rangle$",r"$\langle\vert\nabla\kappa\vert^2\nabla^2\kappa\rangle$",
+		r"$\langle\kappa^4\rangle_c$",r"$\langle\kappa^3\nabla^2\kappa\rangle_c$",r"$\langle\kappa\vert\nabla\kappa\vert^2\nabla^2\kappa\rangle_c$",r"$\langle\vert\nabla\kappa\vert^4\rangle_c$"
+		)
+	
+	#Model labels
+	model_labels = {"kappa":"full","kappaBorn":"born","kappaBornRT":"hybrid"}
 
 	#Set up plot
 	fig,axes = plt.subplots(3,3,figsize=(24,)*2)
@@ -226,12 +241,16 @@ def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn","kappaBornRT"),figname
 
 		#Plot each bin
 		for bn,ax in enumerate(axes.flatten()):
-			ax.hist(samples[:,bn],bins=50,alpha=0.4,label=km)
+			ax.hist(samples[:,bn],bins=50,label=model_labels[km])
 
 	#Axes labels
 	for bn,ax in enumerate(axes.flatten()):
 		ax.legend()
 		ax.set_title(moment_labels[bn],fontsize=fontsize)
+
+	#Scientific notation
+	for ax in axes.flatten():
+		plt.setp(ax.get_xticklabels(),rotation=30)
 
 	#Save
 	fig.tight_layout()
@@ -258,18 +277,7 @@ def pdfSkew(cmd_args):
 #Method dictionary
 method = dict()
 
-method["0"] = convergenceVisualize
-method["1"] = pbBiasPower
-method["1b"] = pbBiasPowerSN
-
-method["2"] = pbBiasMoments
-method["2b"] = pbBiasMomentsSN
-method["2b45"] = pbBiasMomentsSN45
-method["2c"] = pbBiasSkew
-method["2d"] = pbBiasSkewSN
-method["2e"] = pbBiasKurt
-method["2f"] = pbBiasKurtSN
-
+method["1"] = convergenceVisualize
 method["3"] = pdfMoments
 
 #Main
