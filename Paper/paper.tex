@@ -31,6 +31,8 @@
 \newcommand\gsim{\mathrel{\rlap{\lower4pt\hbox{\hskip1pt$\sim$}}
         \raise1pt\hbox{$>$}}}
 
+\newcommand\pt{\pmb{\theta}}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{document}
@@ -97,13 +99,13 @@ Equation (\ref{sim:geodiff}) can be directly integrated to express its solution 
 \bb{x}_\perp(\chi_s) = \bb{x}_\perp(0) -2\int_0^{\chi_s} d\chi (\chi_s-\chi) \nabla_\perp \Phi(\bb{x}_\perp(\chi),\chi)
 \end{equation}
 %
-Where $\chi_s$ is the source galaxy comoving distance. WL observables are related to the differential deflection that nearby light rays experience when traveling from the observer to the source. Indicating with $\pmb{\theta}$ the starting angular position of a light ray at $\chi=0$ and with $\pmb{\beta}_s$ the angular position of the light ray at $\chi=\chi_s$, we are interested in the Jacobian matrix $\bb{A}_s(\pmb{\theta})=\partial\pmb{\beta}_s(\pmb{\theta})/\partial \pmb{\theta}$, which is usually parametrized as 
+Where $\chi_s$ is the source galaxy comoving distance. WL observables are related to the differential deflection that nearby light rays experience when traveling from the observer to the source. Indicating with $\pt$ the starting angular position of a light ray at $\chi=0$ and with $\pmb{\beta}_s$ the angular position of the light ray at $\chi=\chi_s$, we are interested in the Jacobian matrix $\bb{A}_s(\pt)=\partial\pmb{\beta}_s(\pt)/\partial \pt$, which is usually parametrized as 
 
 \begin{equation}
-\bb{A}_s(\pmb{\theta}) = 
+\bb{A}_s(\pt) = 
 \begin{pmatrix}
-1-\kappa(\pmb{\theta})-\gamma^1(\pmb{\theta}) & -\gamma^2(\pmb{\theta}) + \omega(\pmb{\theta}) \\
--\gamma^2(\pmb{\theta}) - \omega(\pmb{\theta}) & 1-\kappa(\pmb{\theta})+\gamma^1(\pmb{\theta})
+1-\kappa(\pt)-\gamma^1(\pt) & -\gamma^2(\pt) + \omega(\pt) \\
+-\gamma^2(\pt) - \omega(\pt) & 1-\kappa(\pt)+\gamma^1(\pt)
 \end{pmatrix}
 \end{equation}
 %
@@ -112,23 +114,24 @@ Where $\kappa,\pmb{\gamma},\omega$ refer respectively to the WL cosmic convergen
 \begin{widetext}
 \begin{equation}
 \label{sim:jacsol}
-A_{ij}(\pmb{\theta},\chi_s) = \delta^K_{ij}-2\int_0^{\chi_s} d\chi\chi W(\chi,\chi_s)\Phi_{ik}(\bb{x}_\perp(\chi,\pmb{\theta}),\chi)A_{kj}(\pmb{\theta},\chi)
+A_{ij}(\pt,\chi_s) = \delta^K_{ij}-2\int_0^{\chi_s} d\chi\chi W(\chi,\chi_s)\Phi_{ik}(\bb{x}_\perp(\chi,\pt),\chi)A_{kj}(\pt,\chi)
 \end{equation} 
 \end{widetext}
 %
-We indicated the partial derivatives of the lensing potential $\Phi$ with respect to the transverse coordinates $x,y$ as subscripts. We also defined the single redshift source lensing kernel $W(\chi,\chi_s)=1-\chi/\chi_s$ and indicated the Kronecker delta symbol as $\delta^K$. The WL convergence $\kappa(\pmb{\theta},\chi_s)$ can be calculated from the trace of the Jacobian
+We indicated the partial derivatives of the lensing potential $\Phi$ with respect to the transverse coordinates $x,y$ as subscripts. We also defined the single redshift source lensing kernel $W(\chi,\chi_s)=1-\chi/\chi_s$ and indicated the Kronecker delta symbol as $\delta^K$. The WL convergence $\kappa(\pt,\chi_s)$ can be calculated from the trace of the Jacobian
 \begin{equation}
-\kappa(\pmb{\theta},\chi_s) = 1-\frac{1}{2}{\rm tr}\left[\bb{A}(\pmb{\theta},\chi_s)\right]
+\label{sim:trkappa}
+\kappa(\pt,\chi_s) = 1-\frac{1}{2}{\rm tr}\left[\bb{A}(\pt,\chi_s)\right]
 \end{equation}
 %
-The implicit form of equation (\ref{sim:jacsol}) suggests a straightforward way to solve the geodesic equation numerically because $A(\pmb{\theta},\chi_s)$ can be expressed once one knows $A(\pmb{\theta},\chi)$ for $\chi<\chi_s$. The multi--lens--plane algorithm \citep{RayTracingJain,RayTracingHartlap} is a popular method to compute the integral in (\ref{sim:jacsol}) in discrete steps (lenses) by keeping track of the intermediate values $A(\pmb{\theta},\chi)$ using dynamic programming. To carry out the geodesic calculations we make use of the \ttt{LensTools} software package \citep{LensTools-paper}, which provides a {\sc python} implementation of the multi--lens--plane algorithm. The exact solution of (\ref{sim:geodiff}) based on (\ref{sim:jacsol}) is computationally expensive because it requires knowledge of the lensing potential $\Phi$. In the next paragraph we review the details of a computationally cheaper but approximate approach based on the Born approximation.     
+The implicit form of equation (\ref{sim:jacsol}) suggests a straightforward way to solve the geodesic equation numerically because $A(\pt,\chi_s)$ can be expressed once one knows $A(\pt,\chi)$ for $\chi<\chi_s$. The multi--lens--plane algorithm \citep{RayTracingJain,RayTracingHartlap} is a popular method to compute the integral in (\ref{sim:jacsol}) in discrete steps (lenses) by keeping track of the intermediate values $A(\pt,\chi)$ using dynamic programming. To carry out the geodesic calculations we make use of the \ttt{LensTools} software package \citep{LensTools-paper}, which provides a {\sc python} implementation of the multi--lens--plane algorithm. The exact solution of (\ref{sim:geodiff}) based on (\ref{sim:jacsol}) is computationally expensive because it requires knowledge of the lensing potential $\Phi$. In the next paragraph we review the details of a computationally cheaper but approximate approach based on the Born approximation.     
 
 \subsection{Born approximation}
-The integral in (\ref{sim:jacsol}) can be approximated using a series expansion in powers of $\Phi$, which can yield acceptable results in the limit in which $\Phi$ is small. To compute the lowest order approximation to (\ref{sim:jacsol}) one notes that the lensing potential appears on the right hand side and hence we can replace the Jacobian on the right hand side with its zeroth order expression, i.e. the identity matrix. We can also replace the real ray trajectory $\bb{x}_\perp(\chi,\pmb{\theta})$ with the unperturbed one, i.e. $\chi\pmb{\theta}$. This yields an expression for $\kappa$ at first order in $\Phi$
+The integral in (\ref{sim:jacsol}) can be approximated using a series expansion in powers of $\Phi$, which can yield acceptable results in the limit in which $\Phi$ is small. To compute the lowest order approximation to (\ref{sim:jacsol}) one notes that the lensing potential appears on the right hand side and hence we can replace the Jacobian on the right hand side with its zeroth order expression, i.e. the identity matrix. We can also replace the real ray trajectory $\bb{x}_\perp(\chi,\pt)$ with the unperturbed one, i.e. $\chi\pt$. This yields an expression for $\kappa$ at first order in $\Phi$
 
 \begin{equation}
 \label{sim:born}
-\kappa^{\rm born}(\pmb{\theta},\chi_s) = \frac{3H_0^2\Omega_m}{2c^2}\int_0^{\chi_s} d\chi\frac{\chi}{a(\chi)} W(\chi,\chi_s)\delta(\chi\pmb{\theta},\chi)
+\kappa^{\rm born}(\pt,\chi_s) = \frac{3H_0^2\Omega_m}{2c^2}\int_0^{\chi_s} d\chi\frac{\chi}{a(\chi)} W(\chi,\chi_s)\delta(\chi\pt,\chi)
 \end{equation}
 %
 The Born approximated convergence in equation (\ref{sim:born}) has a simple interpretation: at lowest order in the lensing potential, $\kappa$ is the integrated matter density on the unperturbed line of sight, weighted by the lensing kernel $W$. Contrary to the exact ray--tracing approach, the Born approximation does not required knowledge of the solution to the Poisson equation (\ref{sim:poisson}) and is hence computationally cheaper. In the next paragraph we examine the corrections to the Born approximation that come at second order in the potential $\Phi$.  
@@ -146,23 +149,23 @@ The second order corrections can be expressed as double integrals along the unpe
 
 \begin{equation}
 \label{sim:ll}
-\kappa^{\rm lens-lens}(\pmb{\theta},\chi_s) = \int_0^{\chi_s}d\chi\int_0^\chi d\chi' \chi\chi' W(\chi,\chi_s)W(\chi',\chi_s)\Phi_{ij}(\chi\pmb{\theta},\chi)\Phi_{ij}(\chi'\pmb{\theta},\chi')
+\kappa^{\rm lens-lens}(\pt,\chi_s) = \int_0^{\chi_s}d\chi\int_0^\chi d\chi' \chi\chi' W(\chi,\chi_s)W(\chi',\chi_s)\Phi_{ij}(\chi\pt,\chi)\Phi_{ij}(\chi'\pt,\chi')
 \end{equation}
 
 \begin{equation}
 \label{sim:gp}
-\kappa^{\rm geodesic}(\pmb{\theta},\chi_s) = \frac{3H_0^2\Omega_m}{2c^2}\int_0^{\chi_s}d\chi\int_0^\chi d\chi' \frac{\chi\chi'}{a(\chi')} W(\chi,\chi_s)W(\chi',\chi_s)\nabla_\perp\Phi(\chi\pmb{\theta},\chi)\cdot\nabla_\perp\delta(\chi'\pmb{\theta},\chi')
+\kappa^{\rm geodesic}(\pt,\chi_s) = \frac{3H_0^2\Omega_m}{2c^2}\int_0^{\chi_s}d\chi\int_0^\chi d\chi' \frac{\chi\chi'}{a(\chi')} W(\chi,\chi_s)W(\chi',\chi_s)\nabla_\perp\Phi(\chi\pt,\chi)\cdot\nabla_\perp\delta(\chi'\pt,\chi')
 \end{equation}
 
 \end{widetext}
 %
-These second order expression have a simple physical interpretation. Equation (\ref{sim:ll}) encodes the post--Born correction to the convergence due to non local quadratic lens--lens couplings, which add to the density line of sight integration in (\ref{sim:born}). Equation (\ref{sim:gp}), on the other hand, encodes the integral of the density contrast on the real light ray trajectory, at lowest order in the geodesic deflections. We computed the line of sight integrals (\ref{sim:born}), (\ref{sim:ll}) and (\ref{sim:gp}) using the functionality of the \ttt{LensTools} suite \citep{LensTools-paper}. A sample of the simulation outputs is shown in Figure \ref{fig:csample}.  
+These second order expression have a simple physical interpretation. Equation (\ref{sim:ll}) encodes the post--Born correction to the convergence due to non local quadratic lens--lens couplings, which add to the density line of sight integration in (\ref{sim:born}). Equation (\ref{sim:gp}), on the other hand, encodes the integral of the density contrast on the real light ray trajectory, at lowest order in the geodesic deflections. The line of sight integrals (\ref{sim:born}), (\ref{sim:ll}) and (\ref{sim:gp}) can be computed efficiently with runtime that scales linearly with the number of lenses using the functionality of the \ttt{LensTools} suite \citep{LensTools-paper}. A sample of the simulation outputs is shown in Figure \ref{fig:csample}. In the next section we show how to infer cosmological parameters from WL features forward models applied to observations.  
 
 \begin{figure*}
 \begin{center}
 \includegraphics[scale=0.4]{Figures/csample.eps}
 \end{center}
-\caption{Sample convergence outputs for one realization of a $(3.5\,{\rm deg})^2$ field of view. The figure shows the convergence profile (top left), along with the Born approximation residuals (top right), the lens-lens post--Born contribution (bottom left) and the geodesic contribution (bottom right). The images have been smoothed with a Gaussian kernel of size $\theta_G=0.5^\prime$.}
+\caption{Sample convergence outputs for one realization of a $(3.5\,{\rm deg})^2$ field of view. The figure shows the convergence profile (top left), along with the Born approximation residuals (top right), the lens-lens post--Born contribution (bottom left) and the geodesic contribution (bottom right). The images have been smoothed with a Gaussian kernel of size $\theta_G=0.5\,{\rm arcmin}$.}
 \label{fig:csample}
 \end{figure*} 
 
@@ -170,16 +173,92 @@ These second order expression have a simple physical interpretation. Equation (\
 
 \section{Parameter inference}
 % 
-The parameter estimator (\ref{par:fisherest})
+Parameter estimation from WL observations involves measurement of an image feature $\bbh{d}_{\rm obs}$ from a reconstructed convergence field $\h{\kappa}(\pt)$. The measured image feature is matched against a forward model $\bb{d}(\bb{p})$ to get an estimate of the cosmological parameters $\bbh{p}$. In the limit in which the feature likelihood is a multivariate Gaussian with $\bb{p}$--independent covariance $\bb{C}^{\bb{d}\bb{d}}$ and the forward model is linear in the parameters 
+
+\begin{equation}
+\label{par:linapprox}
+\bb{d}(\bb{p}) = \bb{d}_0 + \bb{M}(\bb{p}-\bb{p}_0)
+\end{equation}
+%
+the maximum likelihood parameter estimator (\ref{par:fisherest}) is given by (see \citep{DodelsonSchneider13,PetriVariance} for example)
 \begin{equation}
 \label{par:fisherest}
-\bbh{p} = \bb{p}_0 + (\bb{M\Psi M}^T)^{-1} \bb{M\Psi} (\bbh{d}-\bb{d}_0)
+\bbh{p} = \bb{p}_0 + (\bb{M}^T\bb{\Psi M})^{-1} \bb{M}^T\bb{\Psi} (\bbh{d}_{\rm obs}-\bb{d}_0)
 \end{equation}
+%
+where $\bb{\Psi}=(\bb{C}^{\bb{d}\bb{d}})^{-1}$. The linearity assumption (\ref{par:linapprox}) is justified when the scatter of the measure feature $\bbh{d}_{\rm obs}$ around the expansion point $\bb{d}_0$ is expected to be small. This is true for upcoming large area surveys such as LSST \citep{LSST}, WFIRST \citep{WFIRST} and Euclid \citep{Euclid}. In this work we use $N$--body simulations coupled with the \ttt{LensTools} routines to simulate multiple realizations of a convergence field $\h{\kappa}(\pt)$ for different combinations of the cosmological parameter triplet $(\Omega_m,w,\sigma_8)$. We choose the values $\bbh{p}_0=(0.26,-1,0.8)$ as our fiducial cosmological parameters and vary one parameter at a time as in Table \ref{tab:cosmopar} to measure the feature derivatives $\bb{M}$. 
+
+To study the effect of the Born approximation on parameter constraints, we measure the fiducial features $\bb{d}_0$, the derivatives $\bb{M}$ and the feature covariance $\bb{C}^{\bb{d}\bb{d}}$ from $\kappa$ mocks constructed with the Born approximation (\ref{sim:born}). We then evaluate the induced parameter bias by applying the parameter estimator (\ref{par:fisherest}) to a mock observation constructed with full ray--tracing as in equations (\ref{sim:jacsol}), (\ref{sim:trkappa}). We perform the ray--tracing and the line of sight integrals for fixed redshift sources at $z_s=2$ uniformly distributed in a $(3.5\,{\rm deg})^2$ field of view, with a resolution of $2048^2$ pixels. To mimic an LSST--like mock observation, we use the 8192 realizations in our fiducial $\kappa$ ensemble to bootstrap the mean of 1000 fiducial feature measurements, which is equivalent approximately to a $10000\,{\rm deg}^2$ sky coverage. We use this bootstrapped mean as $\bbh{d}_{\rm obs}$.   
+
+\begin{table}
+\begin{center}
+
+\begin{tabular}{c|c|c|c}
+$\Omega_m$ & $w$ & $\sigma_8$ & $\kappa$ realizations \\ \hline \hline
+\multicolumn{4}{c}{\textbf{Fiducial}} \\ \hline
+0.26 & -1 & 0.8 & 8192 \\ \hline
+
+\multicolumn{4}{c}{\textbf{Variation 1}} \\ \hline
+0.29 & -1 & 0.8 & 1024 \\
+0.26 & -0.8 & 0.8 & 1024 \\
+0.26 & -1 & 0.9 & 1024 \\ \hline
+
+\multicolumn{4}{c}{\textbf{Variation 2}} \\ \hline
+0.23 & -1 & 0.8 & 1024 \\
+0.26 & -1.2 & 0.8 & 1024 \\
+0.26 & -1 & 0.7 & 1024 \\ \hline
+
+\end{tabular}
+
+\end{center}
+
+\caption{Cosmological parameters used in our simulation suite}
+\label{tab:cosmopar}
+
+\end{table}
+
+We can add galaxy shape noise to our $\kappa$ mocks in the form of a pixel uncorrelated white Gaussian noise \citep{SongKnox} with rms
+\begin{equation}
+\label{par:shaperms}
+\sigma_{\rm shape} = \frac{0.15+0.035z_s}{\sqrt{N_g}}
+\end{equation}
+%
+where the number of galaxies per pixel $N_g$ is based on a galaxy angular density of $15\,{\rm arcmin}^{-2}$. 
+
+Our image feature choice includes the $\kappa$ power spectrum $P^{\kappa\kappa}(\ell)$ defined as 
+\begin{equation}
+\label{par:powerdef}
+\langle\tilde{\kappa}(\pmb{\ell})\tilde{\kappa}^*(\pmb{\ell}')\rangle = (2\pi)^2\delta^D(\pmb{\ell}+\pmb{\ell}')P^{\kappa\kappa}(\ell) 
+\end{equation}
+%
+Where the expectation value is taken over $\pmb{\ell}$ modes with the same magnitude $\ell=\vert\pmb{\ell}\vert$ and $\delta^D$ is the Dirac delta function. Because the $\kappa$ field is non--Gaussian, higher order statistics such as higher real space $\kappa$ moments have been shown to contain complementary information in addition to the one already supplied by the power spectrum \citep{MinkPetri,CFHTMink,NG-Jain1,NG-Jain2}. We consider the following set of $\kappa$ moments $\pmb{\mu}$
+
+\begin{equation}
+\label{par:moments}
+\begin{matrix}
+\pmb{\mu} = (\pmb{\mu}_2,\pmb{\mu}_3,\pmb{\mu}_4) \\ \\
+\pmb{\mu}_2 = \left(\langle\kappa^2\rangle,\langle\vert\nabla\kappa\vert^2\rangle\right) \\ \\
+\pmb{\mu}_3 = \left(\langle\kappa^3\rangle,\langle\kappa^2\nabla^2\kappa\rangle,\langle\kappa\vert\nabla\kappa\vert^2\rangle\right) \\ \\
+\pmb{\mu}_4 = \left(\langle\kappa^4\rangle_c,\langle\kappa^3\nabla^2\kappa\rangle_c,\langle\kappa^2\vert\nabla\kappa\vert^2\rangle_c,\langle\vert\nabla\kappa\vert^4\rangle_c\right) \\
+\end{matrix}
+\end{equation} 
+%
+Where the expectation values are taken with respect to pixels and the subscript $c$ indicated that we are considering the connected components of the quartic moments $\pmb{\mu}_4$. In the next section we outline our main results.  
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% RESULTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Results}
 % 
+
+\subsection{Forward model accuracy}
+
+\subsection{Parameter bias}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% DISCUSSION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Discussion}
+% 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%% CONCLUSIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Conclusions}
