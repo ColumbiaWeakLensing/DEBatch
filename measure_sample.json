@@ -2,6 +2,7 @@
 
 
 	"redshift" : 2.0,
+	"smoothing" : 0.0,
 	"add_shape_noise" : false,
 	"ngal" : 15,
 	"multipoles" : [100,10000,101],
