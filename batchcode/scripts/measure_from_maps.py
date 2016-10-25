@@ -21,7 +21,7 @@ from emcee.utils import MPIPool
 ##############Measure the power spectrum#####################################################
 #############################################################################################
 
-def convergence_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing_scale=0.0*u.arcmin):
+def convergence_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0):
 	
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
@@ -29,8 +29,8 @@ def convergence_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 		if "0001r" in fname:
 			np.save(os.path.join(map_set.home_subdir,"num_ell_nb{0}.npy".format(len(l_edges)-1)),conv.countModes(l_edges))
 	
-		if smoothing_scale>0:
-			conv = conv.smooth(smoothing_scale,kind="gaussianFFT")
+		if smoothing>0.:
+			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
 
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
@@ -46,7 +46,7 @@ def convergence_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 ##############Measure the cross power#####################################################
 ##########################################################################################
 
-def cross_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing_scale=0.0*u.arcmin,cross="kappaGP"):
+def cross_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0,cross="kappaGP"):
 
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
@@ -55,9 +55,9 @@ def cross_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=1
 		if "0001r" in fname:
 			np.save(os.path.join(map_set.home_subdir,"num_ell_nb{0}.npy".format(len(l_edges)-1)),conv.countModes(l_edges))
 	
-		if smoothing_scale>0:
-			conv = conv.smooth(smoothing_scale,kind="gaussianFFT")
-			conv2 = conv2.smooth(smoothing_scale,kind="gaussianFFT")
+		if smoothing>0.:
+			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
+			conv2 = conv2.smooth(smoothing*u.arcmin,kind="gaussianFFT")
 
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
@@ -74,7 +74,7 @@ def cross_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=1
 ##############Peak counts#####################################################
 ##############################################################################
 
-def convergence_peaks(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing_scale=0.0*u.arcmin):
+def convergence_peaks(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0):
 	
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
@@ -83,7 +83,7 @@ def convergence_peaks(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 			np.save(os.path.join(map_set.home_subdir,"th_peaks_nb{0}.npy".format(len(kappa_edges)-1)),0.5*(kappa_edges[1:]+kappa_edges[:-1]))
 	
 		if smoothing_scale>0:
-			conv = conv.smooth(smoothing_scale,kind="gaussianFFT")
+			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
 
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
@@ -100,13 +100,13 @@ def convergence_peaks(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 ##############Moments#####################################################
 ##########################################################################
 
-def convergence_moments(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing_scale=0.0*u.arcmin):
+def convergence_moments(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0):
 	
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
 	
 		if smoothing_scale>0:
-			conv = conv.smooth(smoothing_scale,kind="gaussianFFT")
+			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
 
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
@@ -151,6 +151,9 @@ if __name__=="__main__":
 	redshift = options["redshift"]
 	add_shape_noise = options["add_shape_noise"]
 	ngal = options["ngal"]
+
+	#Smoothing
+	smoothing = options["smoothing"]
 
 	#Savename
 	savename = options["method"]
@@ -202,13 +205,13 @@ if __name__=="__main__":
 			realizations_per_chunk = num_realizations // chunks
 
 			for c in range(chunks):
-				ensemble_all.append(Ensemble.compute(map_files[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=measurers[options["method"]],pool=pool,map_set=map_set,l_edges=l_edges,kappa_edges=kappa_edges,z=redshift,add_shape_noise=add_shape_noise,ngal=ngal))
+				ensemble_all.append(Ensemble.compute(map_files[realizations_per_chunk*c:realizations_per_chunk*(c+1)],callback_loader=measurers[options["method"]],pool=pool,map_set=map_set,l_edges=l_edges,kappa_edges=kappa_edges,z=redshift,smoothing=smoothing,add_shape_noise=add_shape_noise,ngal=ngal))
 
 			#Merge all the chunks
 			ensemble_all = Ensemble.concat(ensemble_all,axis=0,ignore_index=True)
 
 			#Save to disk
-			ensemble_filename = os.path.join(map_set.home_subdir,savename+"_s{0}_nb{1}.npy".format(0,ensemble_all.shape[1]))
+			ensemble_filename = os.path.join(map_set.home_subdir,savename+"_s{0}_nb{1}.npy".format(int(smoothing*100),ensemble_all.shape[1]))
 			logging.info("Writing {0}".format(ensemble_filename))
 			np.save(ensemble_filename,ensemble_all.values)
 
