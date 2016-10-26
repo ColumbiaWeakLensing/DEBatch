@@ -140,7 +140,8 @@ The Born approximated convergence in equation (\ref{sim:born}) has a simple inte
 Equation (\ref{sim:jacsol}) allows to express the convergence $\kappa$ at arbitrary high orders in $\Phi$ powers. The linear order expression corresponds to the Born approximation in equation (\ref{sim:born}). At second order in $\Phi$ we can write, following \citep{WLBispectrumDodelson}
 
 \begin{equation}
-\kappa = \kappa^{\rm born} + \kappa^{\rm lens-lens} + \kappa^{\rm geodesic} + O(\Phi^3)
+\label{sim:pb2}
+\kappa = \kappa^{\rm born} + \kappa^{\rm ll} + \kappa^{\rm geo} + O(\Phi^3)
 \end{equation}
 %
 The second order corrections can be expressed as double integrals along the unperturbed line of sight
@@ -149,12 +150,12 @@ The second order corrections can be expressed as double integrals along the unpe
 
 \begin{equation}
 \label{sim:ll}
-\kappa^{\rm lens-lens}(\pt,\chi_s) = \int_0^{\chi_s}d\chi\int_0^\chi d\chi' \chi\chi' W(\chi,\chi_s)W(\chi',\chi_s)\Phi_{ij}(\chi\pt,\chi)\Phi_{ij}(\chi'\pt,\chi')
+\kappa^{\rm ll}(\pt,\chi_s) = \int_0^{\chi_s}d\chi\int_0^\chi d\chi' \chi\chi' W(\chi,\chi_s)W(\chi',\chi_s)\Phi_{ij}(\chi\pt,\chi)\Phi_{ij}(\chi'\pt,\chi')
 \end{equation}
 
 \begin{equation}
 \label{sim:gp}
-\kappa^{\rm geodesic}(\pt,\chi_s) = \frac{3H_0^2\Omega_m}{2c^2}\int_0^{\chi_s}d\chi\int_0^\chi d\chi' \frac{\chi\chi'}{a(\chi')} W(\chi,\chi_s)W(\chi',\chi_s)\nabla_\perp\Phi(\chi\pt,\chi)\cdot\nabla_\perp\delta(\chi'\pt,\chi')
+\kappa^{\rm geo}(\pt,\chi_s) = \frac{3H_0^2\Omega_m}{2c^2}\int_0^{\chi_s}d\chi\int_0^\chi d\chi' \frac{\chi\chi'}{a(\chi')} W(\chi,\chi_s)W(\chi',\chi_s)\nabla_\perp\Phi(\chi\pt,\chi)\cdot\nabla_\perp\delta(\chi'\pt,\chi')
 \end{equation}
 
 \end{widetext}
@@ -186,7 +187,7 @@ the maximum likelihood parameter estimator (\ref{par:fisherest}) is given by (se
 \bbh{p} = \bb{p}_0 + (\bb{M}^T\bb{\Psi M})^{-1} \bb{M}^T\bb{\Psi} (\bbh{d}_{\rm obs}-\bb{d}_0)
 \end{equation}
 %
-where $\bb{\Psi}=(\bb{C}^{\bb{d}\bb{d}})^{-1}$. The linearity assumption (\ref{par:linapprox}) is justified when the scatter of the measure feature $\bbh{d}_{\rm obs}$ around the expansion point $\bb{d}_0$ is expected to be small. This is true for upcoming large area surveys such as LSST \citep{LSST}, WFIRST \citep{WFIRST} and Euclid \citep{Euclid}. In this work we use $N$--body simulations coupled with the \ttt{LensTools} routines to simulate multiple realizations of a convergence field $\h{\kappa}(\pt)$ for different combinations of the cosmological parameter triplet $(\Omega_m,w,\sigma_8)$. We choose the values $\bbh{p}_0=(0.26,-1,0.8)$ as our fiducial cosmological parameters and vary one parameter at a time as in Table \ref{tab:cosmopar} to measure the feature derivatives $\bb{M}$. 
+where $\bb{\Psi}=(\bb{C}^{\bb{d}\bb{d}})^{-1}$. The linearity assumption (\ref{par:linapprox}) is justified when the scatter of the measure feature $\bbh{d}_{\rm obs}$ around the expansion point $\bb{d}_0$ is expected to be small. This is true for upcoming large area surveys such as LSST \citep{LSST}, WFIRST \citep{WFIRST} and Euclid \citep{Euclid}. In this work we use $N$--body simulations coupled with the \ttt{LensTools} routines to simulate multiple realizations of a convergence field $\h{\kappa}(\pt)$ for different combinations of the cosmological parameter triplet $(\Omega_m,w_0,\sigma_8)$. We choose the values $\bbh{p}_0=(0.26,-1,0.8)$ as our fiducial cosmological parameters and vary one parameter at a time as in Table \ref{tab:cosmopar} to measure the feature derivatives $\bb{M}$. 
 
 To study the effect of the Born approximation on parameter constraints, we measure the fiducial features $\bb{d}_0$, the derivatives $\bb{M}$ and the feature covariance $\bb{C}^{\bb{d}\bb{d}}$ from $\kappa$ mocks constructed with the Born approximation (\ref{sim:born}). We then evaluate the induced parameter bias by applying the parameter estimator (\ref{par:fisherest}) to a mock observation constructed with full ray--tracing as in equations (\ref{sim:jacsol}), (\ref{sim:trkappa}). We perform the ray--tracing and the line of sight integrals for fixed redshift sources at $z_s=2$ uniformly distributed in a $(3.5\,{\rm deg})^2$ field of view, with a resolution of $2048^2$ pixels. To mimic an LSST--like mock observation, we use the 8192 realizations in our fiducial $\kappa$ ensemble to bootstrap the mean of 1000 fiducial feature measurements, which is equivalent approximately to a $10000\,{\rm deg}^2$ sky coverage. We use this bootstrapped mean as $\bbh{d}_{\rm obs}$.   
 
@@ -194,19 +195,15 @@ To study the effect of the Born approximation on parameter constraints, we measu
 \begin{center}
 
 \begin{tabular}{c|c|c|c}
-$\Omega_m$ & $w$ & $\sigma_8$ & $\kappa$ realizations \\ \hline \hline
+
+$\Omega_m$ & $w_0$ & $\sigma_8$ & $\kappa$ realizations \\ \hline \hline
 \multicolumn{4}{c}{\textbf{Fiducial}} \\ \hline
 0.26 & -1 & 0.8 & 8192 \\ \hline
 
-\multicolumn{4}{c}{\textbf{Variation 1}} \\ \hline
+\multicolumn{4}{c}{\textbf{Variations}} \\ \hline
 0.29 & -1 & 0.8 & 1024 \\
 0.26 & -0.8 & 0.8 & 1024 \\
 0.26 & -1 & 0.9 & 1024 \\ \hline
-
-\multicolumn{4}{c}{\textbf{Variation 2}} \\ \hline
-0.23 & -1 & 0.8 & 1024 \\
-0.26 & -1.2 & 0.8 & 1024 \\
-0.26 & -1 & 0.7 & 1024 \\ \hline
 
 \end{tabular}
 
@@ -251,6 +248,30 @@ Where the expectation values are taken with respect to pixels and the subscript 
 % 
 In this section we presents the results of this work, regarding the WL feature forward model accuracy and the cosmological parameter bias induced by the Born approximation. 
 
+\subsection{Forward model accuracy}
+
+In this paragraph we compare the accuracy of the Born approximation in predicting WL image features, in particular we focus on the $\kappa$ power spectrum and the 9 moments described in equation (\ref{par:moments}). Figure \ref{fig:psResiduals} shows the auto power spectra of $\kappa^{\rm born},\kappa^{\rm lens-lens},\kappa^{\rm geodesic}$ as defined in equation (\ref{sim:pb2}). At lowest order the lensing potential contributes to the $\kappa$ power spectrum quadratically. The first post--Born correction to $P^{\kappa\kappa}$ comes to $O(\Phi^3)$ and is given by
+\begin{equation}
+\label{res:powercorr}
+P^{\kappa\kappa} = P^{\kappa\kappa}_{\rm born,born} + 2P^{\kappa\kappa}_{\rm born,ll} + 2P^{\kappa\kappa}_{\rm born,geo} + O(\Phi^4)
+\end{equation}
+%
+Where we defined the $\kappa$ cross spectra as
+\begin{equation}
+\label{res:powercross}
+\langle\tilde{\kappa}^{a}(\pmb{\ell})\tilde{\kappa}^{b,*}(\pmb{\ell}')\rangle = (2\pi)^2\delta^D(\pmb{\ell}+\pmb{\ell}')P_{a,b}^{\kappa\kappa}(\ell)
+\end{equation} 
+%
+Figure \ref{fig:psResiduals} shows the magnitudes of the $O(\Phi^3)$ post--Born corrections to the convergence power spectrum. 
+
+\begin{figure*}
+\begin{center}
+\includegraphics[scale=0.3]{Figures/powerResiduals.eps}
+\end{center}
+\caption{Power spectrum residuals}
+\label{fig:psResiduals}
+\end{figure*}
+
 \begin{figure*}
 \begin{center}
 \includegraphics[scale=0.25]{Figures/pdfMoments.eps}
@@ -259,11 +280,18 @@ In this section we presents the results of this work, regarding the WL feature f
 \label{fig:pdfMoments}
 \end{figure*} 
 
-\subsection{Forward model accuracy}
-
-
 
 \subsection{Parameter bias}
+
+\begin{figure*}
+\begin{center}
+\includegraphics[scale=0.25]{Figures/bias_convergence_power_s0_nb100.eps}
+\includegraphics[scale=0.25]{Figures/bias_convergence_moments_s0_nb9.eps}
+\includegraphics[scale=0.25]{Figures/bias_convergence_momentsSN_s0_nb9.eps}
+\end{center}
+\caption{Parameter bias}
+\label{fig:parbias}
+\end{figure*}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% DISCUSSION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
