@@ -46,11 +46,11 @@ def convergence_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 ##############Measure the cross power#####################################################
 ##########################################################################################
 
-def cross_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0,cross="kappaGP"):
+def cross_powerGP(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0,cross="kappaGP",fnrep=("born_z","postBorn2-gp_z")):
 
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
-		conv2 = ConvergenceMap.load(map_set.path(fname).replace(map_set.name,cross))
+		conv2 = ConvergenceMap.load(map_set.path(fname).replace(map_set.name,cross).replace(*fnrep))
 
 		if "0001r" in fname:
 			np.save(os.path.join(map_set.home_subdir,"num_ell_nb{0}.npy".format(len(l_edges)-1)),conv.countModes(l_edges))
@@ -69,6 +69,9 @@ def cross_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=1
 
 	except IOError:
 		return None
+
+def cross_powerLL(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0,cross="kappaLL",fnrep=("born_z","postBorn2-ll_z")):
+	return cross_powerGP(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=add_shape_noise,ngal=ngal,smoothing=smoothing,cross=cross,fnrep=fnrep)
 
 ##############################################################################
 ##############Peak counts#####################################################
