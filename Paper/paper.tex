@@ -55,7 +55,7 @@
 \label{firstpage}
 
 \begin{abstract}
-Accurate forward modeling of Weak Lensing (WL) observables from cosmological parameters is a necessary tool for upcoming galaxy surveys. Because WL probes structures in the non--linear regime, analytical forward modeling is very challenging, if not impossible. Numerical simulations of WL features rely on ray--tracing through the outputs of $N$--body simulations, which requires knowledge of the gravitational potential and accurate solvers for light ray trajectories. A cheaper but less accurate procedure based on the Born approximation, on the other hand, requires knowledge of the density only and can be implemented more efficiently and at lower computational cost. In this work we show that geodesic perturbations are the dominant cause of inaccuracy in the Born approximation, lens-lens couplings being negligible. We also show that, although the Born approximation does not accurately predict WL convergence moments in the noiseless case, once galaxy shape noise is added the loss of accuracy is negligible even for a LSST--like survey.   
+Accurate forward modeling of Weak Lensing (WL) observables from cosmological parameters is a necessary tool for upcoming galaxy surveys. Because WL probes structures in the non--linear regime, analytical forward modeling is very challenging, if not impossible. Numerical simulations of WL features rely on ray--tracing through the outputs of $N$--body simulations, which requires knowledge of the gravitational potential and accurate solvers for light ray trajectories. A cheaper but less accurate procedure based on the Born approximation, on the other hand, requires knowledge of the density only and can be implemented more efficiently and at lower computational cost. In this work we show that geodesic perturbations are the dominant correction to the Born approximation, lens-lens couplings being negligible. We also show that, although the Born approximation does not accurately predict WL convergence moments in the noiseless case, once galaxy shape noise is added the loss of accuracy is negligible even for a LSST--like survey, due to the increased statistical errors.    
 \end{abstract}
 
 
@@ -246,11 +246,43 @@ Where the expectation values are taken with respect to pixels and the subscript 
 
 \section{Results}
 % 
+\begin{figure*}
+\begin{center}
+\includegraphics[scale=0.3]{Figures/powerResiduals.eps}
+\end{center}
+\caption{Contributions of different $\Phi$ orders to the $\kappa$ power spectrum: the left panel shows the auto power spectra $P_{\rm born,born}$ ($O(\Phi^2)$) and $P_{\rm ll},P_{\rm geo}$ ($O(\Phi^4)$). The right panel shows the residuals between the power spectrum of the full ray--traced $\kappa$ field and the one obtained with the Born approximation. The residuals are compared to the two $O(\Phi^3)$ terms $2P_{\rm born,ll},2P_{\rm born,geo}$. The quantities shown are the averages over 1024 realizations of $\kappa$ in the fiducial cosmology $\bb{p}_0$.}
+\label{fig:psResiduals}
+\end{figure*}
+%
+We also studied the accuracy of the Born approximation in predicting the 9 higher order convergence moments defined in (\ref{par:moments}). The results are shown in Figure \ref{fig:pdfMoments}. 
+
+\begin{figure*}
+\begin{center}
+\includegraphics[scale=0.25]{Figures/pdfMoments.eps}
+\end{center}
+\caption{Probability distribution function (PDF) of the 9 $\kappa$ moments defined in (\ref{par:moments}), over 8192 realizations of the fiducial cosmological model $\bb{p}_0$. We show both the PDFs obtained with full ray--tracing (blue) and the Born approximation (green). No shape noise has been added. The $\kappa$ maps were smoothed with a Gaussian kernel of size $\theta_G=0.5\,{\rm arcmin}$ before measuring the moments.}
+\label{fig:pdfMoments}
+\end{figure*} 
+
+\begin{figure*}
+\begin{center}
+\includegraphics[scale=0.25]{Figures/bias_convergence_power_s0_nb100.eps}
+\includegraphics[scale=0.25]{Figures/bias_convergence_moments_s0_nb9.eps}
+\includegraphics[scale=0.25]{Figures/bias_convergence_momentsSN_s0_nb9.eps}
+\end{center}
+\caption{Distribution of the parameter estimator (\ref{par:fisherest}) over 1000 realizations of an LSST--like survey. We show parameter estimates obtained using the noiseless $\kappa$ power spectrum (top panel), the noiseless $\kappa$ moments defined in (\ref{par:moments}) (middle panel) and the noisy $\kappa$ moments, based on a galaxy density of $15\,{\rm arcmin}^{-2}$ (bottom panel). We show both a control case, in which the observation has been constructed with the Born approximation (blue), and the real case, in which the observation has been constructed with full ray--tracing (green).}
+\label{fig:parbias}
+\end{figure*}
+
+
+\subsection{Parameter bias}
+When using forward models based on the Born approximation to fit observations, parameter biases may occur if the forward model is not accurate enough. We studied if this is the case by simulating 1000 LSST--like observations in which the convergence field $\kappa(\pt)$ is constructed using the full ray--tracing procedure. We used the Born approximation to fit these mock observations using the Fisher parameter estimator in (\ref{par:fisherest}). The results are shown in Figure \ref{fig:parbias}. 
+
 In this section we presents the results of this work, regarding the WL feature forward model accuracy and the cosmological parameter bias induced by the Born approximation. 
 
 \subsection{Forward model accuracy}
 
-In this paragraph we compare the accuracy of the Born approximation in predicting WL image features, in particular we focus on the $\kappa$ power spectrum and the 9 moments described in equation (\ref{par:moments}). Figure \ref{fig:psResiduals} shows the auto power spectra of $\kappa^{\rm born},\kappa^{\rm lens-lens},\kappa^{\rm geodesic}$ as defined in equation (\ref{sim:pb2}). At lowest order the lensing potential contributes to the $\kappa$ power spectrum quadratically. The first post--Born correction to $P^{\kappa\kappa}$ comes to $O(\Phi^3)$ and is given by
+In this paragraph we compare the accuracy of the Born approximation in predicting WL image features, in particular we focus on the $\kappa$ power spectrum and the 9 moments described in equation (\ref{par:moments}). Figure \ref{fig:psResiduals} shows the auto power spectra of $\kappa^{\rm born},\kappa^{\rm ll},\kappa^{\rm geo}$ as defined in equation (\ref{sim:pb2}). At lowest order the lensing potential contributes to the $\kappa$ power spectrum quadratically. The first post--Born correction to $P^{\kappa\kappa}$ comes to $O(\Phi^3)$ and is given by
 \begin{equation}
 \label{res:powercorr}
 P^{\kappa\kappa} = P^{\kappa\kappa}_{\rm born,born} + 2P^{\kappa\kappa}_{\rm born,ll} + 2P^{\kappa\kappa}_{\rm born,geo} + O(\Phi^4)
@@ -264,49 +296,41 @@ Where we defined the $\kappa$ cross spectra as
 %
 Figure \ref{fig:psResiduals} shows the magnitudes of the $O(\Phi^3)$ post--Born corrections to the convergence power spectrum. 
 
-\begin{figure*}
-\begin{center}
-\includegraphics[scale=0.3]{Figures/powerResiduals.eps}
-\end{center}
-\caption{Power spectrum residuals}
-\label{fig:psResiduals}
-\end{figure*}
-
-\begin{figure*}
-\begin{center}
-\includegraphics[scale=0.25]{Figures/pdfMoments.eps}
-\end{center}
-\caption{PDF of $\kappa$ moments}
-\label{fig:pdfMoments}
-\end{figure*} 
-
-
-\subsection{Parameter bias}
-
-\begin{figure*}
-\begin{center}
-\includegraphics[scale=0.25]{Figures/bias_convergence_power_s0_nb100.eps}
-\includegraphics[scale=0.25]{Figures/bias_convergence_moments_s0_nb9.eps}
-\includegraphics[scale=0.25]{Figures/bias_convergence_momentsSN_s0_nb9.eps}
-\end{center}
-\caption{Parameter bias}
-\label{fig:parbias}
-\end{figure*}
-
 %%%%%%%%%%%%%%%%%%%%%%%%%% DISCUSSION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Discussion}
 % 
+In this section we discuss our main findings. Figure \ref{fig:csample} shows that the dominant post--Born correction to the $\kappa$ reconstruction comes from the geodesic term (\ref{sim:gp}). This can be shown both looking at the lens-lens term, which is one order of magnitude smaller than the geodesic term, and looking at the $\kappa-\kappa^{\rm born}$ residuals, which show similar structure to the ones found in the $\kappa^{\rm geo}$ map. 
+
+Figure \ref{fig:psResiduals} shows a comparison between the Born approximated $\kappa$ power spectra and the ones obtained with full ray--tracing, separating different orders in $\Phi$. We can conclude that the dominant contributions to the residuals come from the Born--geodesic cross power, which dominates the Born--lens--lens cross power by two orders of magnitude on small scales. Figure \ref{fig:psResiduals} also gives indications that the perturbation series in powers of $\Phi$ becomes asymptotic on small angular scales as the higher orders $O(\Phi^4)$ tend to dominate the leading orders. This is likely due to the non--linearity of the density contrast on small scales. 
+
+Figure \ref{fig:pdfMoments} shows the PDF of the 9 $\kappa$ moments defined in (\ref{par:moments}) over 1000 realizations of an LSST--like survey. The plot clearly shows that, while the Born approximation is a good predictor of the quadratic moments $\pmb{\mu}_2$ within one standard deviation, the higher moments $\pmb{\mu}_3,\pmb{\mu}_4$ show $2\div 3\sigma$ deviations from their Born approximated counterparts. This can lead to parameter biases when fitting observations. Figure \ref{fig:parbias} studies this possibility and shows that, while the Born approximation is sufficient to fit cosmology with the power spectrum of an LSST--like survey, even in the noiseless case, the same is not true for the higher $\kappa$ moments. The middle panel of Figure \ref{fig:parbias} show that high significance biases are observed when fitting a real observation with Born approximated $\kappa$ moments. The bias however disappears when introducing galaxy shape noise, due to the resulting increased statistical error.  
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% CONCLUSIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Conclusions}
-% 
+In this work we studied the effectiveness of the Born approximation in predicting Weak Lensing observables, and studied the approximation effects on parameter constraints. Our main findings can be summarized in the following points:
+
+\begin{itemize}
+\item The main corrections to the Born approximations come from the perturbations in the light ray geodesic, with lens--lens coupling being at least one order of magnitude sub leading
+\item The $\kappa$ power spectrum leads to negligible parameter bias for an LSST--like survey, even in the noiseless case
+\item Fitting an observation with Born approximated higher $\kappa$ moments leads to high significance bias in the $(\Omega_m,w_0,\sigma_8)$ in the noiseless case. The bias significance becomes negligible when galaxy shape noise is added due to an increased scatter in parameter estimates.   
+\end{itemize}
+%
+Future prospects involve study the Born approximation validity for CMB lensing observations. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% ACKNOWLEDGMENTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section*{Acknowledgments}
-
+We thank Uros Seljak for useful discussions. The $N$--body simulations in this work were performed at National Energy Research Scientific Computing Center (NERSC). We thank the LSST Dark Energy Science Collaboration (DESC) for the allocation of time. The ray--tracing simulations and parameter estimation calculations were performed at the NSF XSEDE facility, supported by grant number
+ACI-1053575, and at the New York Center for Computational Sciences, a
+cooperative effort between Brookhaven National Laboratory and Stony
+Brook University, supported in part by the State of New York. This
+work was supported in part by the U.S. Department of Energy under
+Contract No. DE-SC00112704, and by the NSF Grant
+No. AST-1210877 (to Z.H.) and by the Research Opportunities and
+Approaches to Data Science (ROADS) program at the Institute for Data
+Sciences and Engineering at Columbia University (to Z.H.).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

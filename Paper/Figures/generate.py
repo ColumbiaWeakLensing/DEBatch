@@ -102,9 +102,9 @@ def powerResiduals(cmd_args,fontsize=22):
 	ax[0].plot(ell,ell*(ell+1)*pBorn.mean(0)/(2.*np.pi),label="born")
 	ax[0].plot(ell,ell*(ell+1)*pGP.mean(0)/(2.*np.pi),label="geodesic")
 	ax[0].plot(ell,ell*(ell+1)*pLL.mean(0)/(2.*np.pi),label="lens-lens")
-	ax[1].plot(ell,(np.abs(pFull.mean(0)-pBorn.mean(0))),label=r"${\rm ray-born}$")
-	ax[1].plot(ell,2*np.abs(pGP_cross.mean(0)),label=r"$2{\rm born}\times{\rm geo}$")
-	ax[1].plot(ell,2*np.abs(pLL_cross.mean(0)),label=r"$2{\rm born}\times{\rm ll}$")
+	ax[1].plot(ell,ell*(ell+1)*(np.abs(pFull.mean(0)-pBorn.mean(0)))/(2.0*np.pi),label=r"${\rm ray-born}$")
+	ax[1].plot(ell,ell*(ell+1)*np.abs(pGP_cross.mean(0))/np.pi,label=r"$2{\rm born}\times{\rm geo}$")
+	ax[1].plot(ell,ell*(ell+1)*np.abs(pLL_cross.mean(0))/np.pi,label=r"$2{\rm born}\times{\rm ll}$")
 
 	#Labels
 	for n in (0,1):
@@ -116,7 +116,7 @@ def powerResiduals(cmd_args,fontsize=22):
 		ax[n].set_xlabel(r"$\ell$",fontsize=fontsize)
 	
 	ax[0].set_ylabel(r"$\ell(\ell+1)P^{\kappa\kappa}(\ell)/2\pi$",fontsize=fontsize)
-	ax[1].set_ylabel(r"${\rm abs(residuals)}$")
+	ax[1].set_ylabel(r"$\ell(\ell+1){\rm abs(residuals)/2\pi}$")
 
 	#Save
 	fig.tight_layout()
@@ -125,7 +125,7 @@ def powerResiduals(cmd_args,fontsize=22):
 ###################################################################################################
 ###################################################################################################
 
-def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",kappa_models=("Born",),callback=None,variation_idx=(0,),bootstrap_size=100,resample=1000,fontsize=22):
+def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",title="Power spectrum",kappa_models=("Born",),callback=None,variation_idx=(0,),bootstrap_size=100,resample=1000,fontsize=22):
 	
 	#Initialize plot
 	fig,ax = plt.subplots(len(variation_idx),3,figsize=(24,8*len(variation_idx)))
@@ -195,7 +195,7 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",kappa_models=("Bor
 				fitted_parameters_ray[p].plot.hist(bins=50,ax=ax[nv,n],label=mf+"(Observation)")
 				
 				ax[nv,n].set_xlabel(plab[p],fontsize=fontsize)
-				#ax[nv,n].set_title("Fisher {0}".format(v))
+				ax[nv,n].set_title(title)
 				ax[nv,n].legend()
 
 	#Labels
@@ -215,10 +215,10 @@ def pbBiasPowerSN(cmd_args,feature_name="convergence_powerSN_s0_nb100"):
 	pbBias(cmd_args,feature_name=feature_name)
 
 def pbBiasMoments(cmd_args,feature_name="convergence_moments_s0_nb9"):
-	pbBias(cmd_args,feature_name=feature_name,kappa_models=("Born","BornRT"))
+	pbBias(cmd_args,feature_name=feature_name,kappa_models=("Born",),title="Moments")
 
 def pbBiasMomentsSN(cmd_args,feature_name="convergence_momentsSN_s0_nb9"):
-	pbBias(cmd_args,feature_name=feature_name)
+	pbBias(cmd_args,feature_name=feature_name,title="Moments (shape noise)")
 
 def pbBiasMomentsSN45(cmd_args,feature_name="convergence_momentsSN45_s0_nb9"):
 	pbBias(cmd_args,feature_name=feature_name)
@@ -274,7 +274,7 @@ def pdfSkew(cmd_args):
 
 ####################################################################################################################
 
-def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn","kappaB+GP"),figname="pdfMoments",fontsize=22):
+def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn"),figname="pdfMoments",fontsize=22):
 
 	#Moment labels
 	moment_labels = (
@@ -284,7 +284,7 @@ def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn","kappaB+GP"),figname="
 		)
 	
 	#Model labels
-	model_labels = {"kappa":"full","kappaBorn":"born","kappaB+GP":"born+geo"}
+	model_labels = {"kappa":"full","kappaBorn":"born","kappaBornRT":"hybrid","kappaB+GP":"born+geo"}
 
 	#Set up plot
 	fig,axes = plt.subplots(3,3,figsize=(24,)*2)
