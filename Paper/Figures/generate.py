@@ -108,7 +108,7 @@ def powerResiduals(cmd_args,fontsize=22):
 
 	#Labels
 	for n in (0,1):
-		ax[n].legend(loc="upper left",prop={"size":13})
+		ax[n].legend(loc="upper left",prop={"size":15})
 
 	for n in (0,1):
 		ax[n].set_xscale("log")
@@ -239,6 +239,10 @@ def pbBiasKurtSN(cmd_args,feature_name="convergence_kurtSN_s0_nb9"):
 	callback = lambda f:np.load(f.replace("kurt","moments"))[:,5:]
 	pbBias(cmd_args,feature_name=feature_name,callback=callback)
 
+def pbBiasPeaks(cmd_args,feature_name="convergence_peaks_s50_nb100"):
+	callback = None
+	pbBias(cmd_args,feature_name=feature_name,callback=callback)
+
 ####################################################################################################################
 ####################################################################################################################
 
@@ -331,6 +335,7 @@ method["3"] = pdfMoments
 method["4"] = pbBiasPower
 method["4b"] = pbBiasMoments
 method["4c"] = pbBiasMomentsSN
+method["5"] = pbBiasPeaks
 
 #Main
 def main():

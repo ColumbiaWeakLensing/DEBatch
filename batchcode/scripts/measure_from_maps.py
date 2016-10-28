@@ -29,12 +29,12 @@ def convergence_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 		if "0001r" in fname:
 			np.save(os.path.join(map_set.home_subdir,"num_ell_nb{0}.npy".format(len(l_edges)-1)),conv.countModes(l_edges))
 	
-		if smoothing>0.:
-			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
-
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
 			conv = conv + gen.getShapeNoise(z=z,ngal=ngal*(u.arcmin**-2),seed=hash(os.path.basename(fname))%4294967295)
+
+		if smoothing>0.:
+			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
 
 		l,Pl = conv.powerSpectrum(l_edges)
 		return Pl
@@ -55,14 +55,14 @@ def cross_powerGP(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal
 		if "0001r" in fname:
 			np.save(os.path.join(map_set.home_subdir,"num_ell_nb{0}.npy".format(len(l_edges)-1)),conv.countModes(l_edges))
 	
-		if smoothing>0.:
-			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
-			conv2 = conv2.smooth(smoothing*u.arcmin,kind="gaussianFFT")
-
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
 			conv = conv + gen.getShapeNoise(z=z,ngal=ngal*(u.arcmin**-2),seed=hash(os.path.basename(fname))%4294967295)
 			conv2 = conv2 + gen.getShapeNoise(z=z,ngal=ngal*(u.arcmin**-2),seed=hash(os.path.basename(fname))%4294967295)
+
+		if smoothing>0.:
+			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
+			conv2 = conv2.smooth(smoothing*u.arcmin,kind="gaussianFFT")
 
 		l,Pl = conv.cross(conv2,l_edges=l_edges)
 		return Pl
@@ -85,12 +85,12 @@ def convergence_peaks(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 		if "0001r" in fname:
 			np.save(os.path.join(map_set.home_subdir,"th_peaks_nb{0}.npy".format(len(kappa_edges)-1)),0.5*(kappa_edges[1:]+kappa_edges[:-1]))
 	
-		if smoothing>0.:
-			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
-
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
 			conv = conv + gen.getShapeNoise(z=z,ngal=ngal*(u.arcmin**-2),seed=hash(os.path.basename(fname))%4294967295)
+
+		if smoothing>0.:
+			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
 
 		k,peaks = conv.peakCount(kappa_edges)
 		return peaks
@@ -108,12 +108,12 @@ def convergence_moments(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=Fals
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
 	
-		if smoothing>0.:
-			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
-
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
 			conv = conv + gen.getShapeNoise(z=z,ngal=ngal*(u.arcmin**-2),seed=hash(os.path.basename(fname))%4294967295)
+	
+		if smoothing>0.:
+			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
 
 		#Subtract mean
 		conv.data -= conv.data.mean()
