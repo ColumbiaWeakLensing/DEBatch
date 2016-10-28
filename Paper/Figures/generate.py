@@ -69,8 +69,8 @@ def convergenceVisualize(cmd_args,smooth=0.5*u.arcmin,fontsize=22):
 	#Titles
 	ax[0,0].set_title(r"$\kappa$",fontsize=fontsize)
 	ax[0,1].set_title(r"$\kappa-\kappa^{\rm born}$",fontsize=fontsize)
-	ax[1,0].set_title(r"$\kappa^{\rm lens-lens}$",fontsize=fontsize)
-	ax[1,1].set_title(r"$\kappa^{\rm geodesic}$",fontsize=fontsize)
+	ax[1,0].set_title(r"$\kappa^{\rm ll}$",fontsize=fontsize)
+	ax[1,1].set_title(r"$\kappa^{\rm geo}$",fontsize=fontsize)
 
 	#Switch off grids
 	for i in (0,1):
@@ -84,7 +84,48 @@ def convergenceVisualize(cmd_args,smooth=0.5*u.arcmin,fontsize=22):
 ###################################################################################################
 ###################################################################################################
 
-def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",kappa_models=("Born",),callback=None,variation_idx=(0,1),bootstrap_size=100,resample=1000,fontsize=22):
+def powerResiduals(cmd_args,fontsize=22):
+
+	#Initialize plot
+	fig,ax = plt.subplots(1,2,figsize=(16,8))
+
+	#Load data
+	ell = np.load(os.path.join(batch.home,"ell_nb100.npy"))
+	pFull = np.load(os.path.join(fiducial["c0"].getMapSet("kappa").home,"convergence_power_s0_nb100.npy"))
+	pBorn = np.load(os.path.join(fiducial["c0"].getMapSet("kappaBorn").home,"convergence_power_s0_nb100.npy"))
+	pLL = np.load(os.path.join(fiducial["c0"].getMapSet("kappaLL").home,"convergence_power_s0_nb100.npy"))
+	pLL_cross = np.load(os.path.join(fiducial["c0"].getMapSet("kappaBorn").home,"cross_powerLL_s0_nb100.npy"))
+	pGP = np.load(os.path.join(fiducial["c0"].getMapSet("kappaGP").home,"convergence_power_s0_nb100.npy"))
+	pGP_cross = np.load(os.path.join(fiducial["c0"].getMapSet("kappaBorn").home,"cross_powerGP_s0_nb100.npy"))
+
+	#Plot
+	ax[0].plot(ell,ell*(ell+1)*pBorn.mean(0)/(2.*np.pi),label="born")
+	ax[0].plot(ell,ell*(ell+1)*pGP.mean(0)/(2.*np.pi),label="geodesic")
+	ax[0].plot(ell,ell*(ell+1)*pLL.mean(0)/(2.*np.pi),label="lens-lens")
+	ax[1].plot(ell,ell*(ell+1)*(np.abs(pFull.mean(0)-pBorn.mean(0)))/(2.0*np.pi),label=r"${\rm ray-born}$")
+	ax[1].plot(ell,ell*(ell+1)*np.abs(pGP_cross.mean(0))/np.pi,label=r"$2{\rm born}\times{\rm geo}$")
+	ax[1].plot(ell,ell*(ell+1)*np.abs(pLL_cross.mean(0))/np.pi,label=r"$2{\rm born}\times{\rm ll}$")
+
+	#Labels
+	for n in (0,1):
+		ax[n].legend(loc="upper left",prop={"size":13})
+
+	for n in (0,1):
+		ax[n].set_xscale("log")
+		ax[n].set_yscale("log")
+		ax[n].set_xlabel(r"$\ell$",fontsize=fontsize)
+	
+	ax[0].set_ylabel(r"$\ell(\ell+1)P^{\kappa\kappa}(\ell)/2\pi$",fontsize=fontsize)
+	ax[1].set_ylabel(r"$\ell(\ell+1){\rm abs(residuals)/2\pi}$")
+
+	#Save
+	fig.tight_layout()
+	fig.savefig("powerResiduals."+cmd_args.type)
+
+###################################################################################################
+###################################################################################################
+
+def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",title="Power spectrum",kappa_models=("Born",),callback=None,variation_idx=(0,),bootstrap_size=100,resample=1000,fontsize=22):
 	
 	#Initialize plot
 	fig,ax = plt.subplots(len(variation_idx),3,figsize=(24,8*len(variation_idx)))
@@ -150,14 +191,19 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",kappa_models=("Bor
 			##########
 
 			for n,p in enumerate(fisher.parameter_names):
-				fitted_parameters_born[p].plot.hist(bins=50,ax=ax[nv,n],label=mf+"(Mock)",alpha=0.4)
-				fitted_parameters_ray[p].plot.hist(bins=50,ax=ax[nv,n],label=mf+"(Observation)",alpha=0.4)
+				fitted_parameters_born[p].plot.hist(bins=50,ax=ax[nv,n],label=mf+"(Control)")
+				fitted_parameters_ray[p].plot.hist(bins=50,ax=ax[nv,n],label=mf+"(Observation)")
 				
-				ax[nv,n].set_xlabel(plab[p],fontsize=18)
-				ax[nv,n].set_title("Fisher {0}".format(v))
+				ax[nv,n].set_xlabel(plab[p],fontsize=fontsize)
+				ax[nv,n].set_title(title)
 				ax[nv,n].legend()
+
+	#Labels
+	for a in ax.flatten():
+		plt.setp(a.get_xticklabels(),rotation=30)
 	
 	#Save
+	fig.tight_layout()
 	fig.savefig("bias_{0}.{1}".format(feature_name,cmd_args.type))
 
 ####################################################################################################################
@@ -169,10 +215,10 @@ def pbBiasPowerSN(cmd_args,feature_name="convergence_powerSN_s0_nb100"):
 	pbBias(cmd_args,feature_name=feature_name)
 
 def pbBiasMoments(cmd_args,feature_name="convergence_moments_s0_nb9"):
-	pbBias(cmd_args,feature_name=feature_name,kappa_models=("Born","BornRT"))
+	pbBias(cmd_args,feature_name=feature_name,kappa_models=("Born",),title="Moments")
 
 def pbBiasMomentsSN(cmd_args,feature_name="convergence_momentsSN_s0_nb9"):
-	pbBias(cmd_args,feature_name=feature_name)
+	pbBias(cmd_args,feature_name=feature_name,title="Moments (shape noise)")
 
 def pbBiasMomentsSN45(cmd_args,feature_name="convergence_momentsSN45_s0_nb9"):
 	pbBias(cmd_args,feature_name=feature_name)
@@ -214,7 +260,21 @@ def pdfPlot(cmd_args,features,figname,fontsize=22):
 	#Save
 	fig.savefig(figname+"."+cmd_args.type)
 
-def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn","kappaBornRT"),figname="pdfMoments",fontsize=22):
+def pdfSkew(cmd_args):
+
+	features = {
+		r"$S_0({\rm noiseless})$" : (fiducial,"kappa","convergence_moments_s0_nb9",3),
+		r"$S_0({\rm noiseless (Born)})$" : (fiducial,"kappaBorn","convergence_moments_s0_nb9",3),
+		r"$S_0({\rm noiseless (RT)})$" : (fiducial,"kappaBornRT","convergence_moments_s0_nb9",3)
+	}
+
+	figname = "pdfSkew"
+
+	pdfPlot(cmd_args,features=features,figname=figname)
+
+####################################################################################################################
+
+def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn"),figname="pdfMoments",fontsize=22):
 
 	#Moment labels
 	moment_labels = (
@@ -224,7 +284,7 @@ def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn","kappaBornRT"),figname
 		)
 	
 	#Model labels
-	model_labels = {"kappa":"full","kappaBorn":"born","kappaBornRT":"hybrid"}
+	model_labels = {"kappa":"full","kappaBorn":"born","kappaBornRT":"hybrid","kappaB+GP":"born+geo"}
 
 	#Set up plot
 	fig,axes = plt.subplots(3,3,figsize=(24,)*2)
@@ -236,7 +296,7 @@ def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn","kappaBornRT"),figname
 	for km in kappa_models:
 
 		#Load samples
-		fname = os.path.join(fiducial["c0"].getMapSet(km).home,"convergence_moments_s0_nb9.npy")
+		fname = os.path.join(fiducial["c0"].getMapSet(km).home,"convergence_moments_s50_nb9.npy")
 		samples = Ensemble.read(fname).bootstrap(bootstrap_mean,bootstrap_size=1000,resample=1000)
 
 		#Plot each bin
@@ -258,18 +318,6 @@ def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn","kappaBornRT"),figname
 
 ####################################################################################################################
 
-def pdfSkew(cmd_args):
-
-	features = {
-		r"$S_0({\rm noiseless})$" : (fiducial,"kappa","convergence_moments_s0_nb9",3),
-		r"$S_0({\rm noiseless (Born)})$" : (fiducial,"kappaBorn","convergence_moments_s0_nb9",3),
-		r"$S_0({\rm noiseless (RT)})$" : (fiducial,"kappaBornRT","convergence_moments_s0_nb9",3)
-	}
-
-	figname = "pdfSkew"
-
-	pdfPlot(cmd_args,features=features,figname=figname)
-
 ###################################################################################################
 ###################################################################################################
 ###################################################################################################
@@ -278,7 +326,11 @@ def pdfSkew(cmd_args):
 method = dict()
 
 method["1"] = convergenceVisualize
+method["2"] = powerResiduals
 method["3"] = pdfMoments
+method["4"] = pbBiasPower
+method["4b"] = pbBiasMoments
+method["4c"] = pbBiasMomentsSN
 
 #Main
 def main():
