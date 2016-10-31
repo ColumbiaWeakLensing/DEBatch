@@ -322,6 +322,38 @@ def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn"),figname="pdfMoments",
 
 ####################################################################################################################
 
+def plotSmooth(cmd_args,reference="kappaBorn",variations=("kappa","kappaB+GP","kappaB+LL"),moment_index=2,smooth=(0.5,1.0,2.0),fontsize=22):
+
+	#Model labels
+	labels = {"kappaBorn":"born","kappa":"full","kappaB+GP":"geodesic","kappaB+LL":"lens-lens"}
+
+	#Set up plot
+	fig,ax = plt.subplots()
+
+	#Load data
+	moments = dict()
+	for l in (reference,)+variations:
+		moments[l] = list()
+
+	for s in smooth:
+		for l in (reference,)+variations:
+			samples = np.load(os.path.join(fiducial["c0"].getMapSet(l).home,"convergence_moments_s{0}_nb9.npy".format(int(smooth*100))))
+			moments[l].append(samples[:,moment_index].mean(0))
+
+	#Plot
+	for v in variations:
+		ax.plot(smooth,moments[v]/moments[reference]-1.0,label=labels[v])
+
+	#Labels
+	ax.set_xlabel(r"$\theta_G({\rm} arcmin)$",fontsize=fontsize)
+	ax.set_ylabel(r"$\langle\delta\kappa^3\rangle/\langle\kappa^3\rangle$",fontsize=fontsize)
+	ax.legend()
+
+	#Save
+	fig.savefig("delta_moment{0}.{1}".format(moment_index,cmd_args.type))
+
+####################################################################################################################
+
 ###################################################################################################
 ###################################################################################################
 ###################################################################################################
