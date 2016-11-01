@@ -124,7 +124,7 @@ def convergence_moments(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=Fals
 	except IOError:
 		return None
 
-def skew_crossGP(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0,cross="kappaGP",fnrep=("born_z","postBorn2-gp_z")):
+def cross_skewGP(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0,cross="kappaGP",fnrep=("born_z","postBorn2-gp_z")):
 
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
@@ -152,8 +152,8 @@ def skew_crossGP(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=
 	except IOError:
 		return None
 
-def skew_crossLL(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0,cross="kappaLL",fnrep=("born_z","postBorn2-ll_z")):
-	return skew_crossGP(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=add_shape_noise,ngal=ngal,smoothing=smoothing,cross=cross,fnrep=fnrep)
+def cross_skewLL(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0,cross="kappaLL",fnrep=("born_z","postBorn2-ll_z")):
+	return cross_skewGP(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=add_shape_noise,ngal=ngal,smoothing=smoothing,cross=cross,fnrep=fnrep)
 
 #################################################################################
 ##############Main execution#####################################################
