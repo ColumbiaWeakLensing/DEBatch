@@ -134,10 +134,11 @@ if __name__=="__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-c","--config",dest="config",action="store",default=None,help="config file")
 	parser.add_argument("-s","--smooth",dest="smooth",action="store",type=float,default=None,help="smoothing scale in arcmin")
+	parser.add_argument("-m","--maps",dest="maps",action="store",default=None,help="map sets file")
 	cmd_args = parser.parse_args()
 
 	#Make sure config is provided
-	if cmd_args.config is None:
+	if (cmd_args.config is None) or (cmd_args.maps is None):
 		parser.print_help()
 		sys.exit(1)
 
@@ -148,6 +149,10 @@ if __name__=="__main__":
 	#Read options from json config file
 	with open(cmd_args.config,"r") as fp:
 		options = json.load(fp)
+
+	#Read the json map sets file
+	with open(cmd_args.maps,"r") as fp:
+		maps = json.load(fp)
 
 	#Initialize MPIPool
 	try:
@@ -205,10 +210,14 @@ if __name__=="__main__":
 	
 	#####################################################################################################################
 
-	for model in [ batch.getModel("Om0.260_Ode0.740_w-1.000_wa0.000_si0.800") ]:
+	for cosmo_id in maps:
+
+		model = batch.getModel(cosmo_id)
 
 		#Perform the measurements for all the map sets
-		for map_set in [ model["c0"].getMapSet("kappa"),model["c0"].getMapSet("kappaBorn"),model["c0"].getMapSet("kappaB+LL"),model["c0"].getMapSet("kappaB+GP") ]:
+		for ms in maps[cosmo_id]:
+
+			map_set = model["c0"].getMapSet(ms)
 
 			#Log to user
 			logging.info("Processing model {0}, map set {1}".format(map_set.cosmo_id,map_set.settings.directory_name))
