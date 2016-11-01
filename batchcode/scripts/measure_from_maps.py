@@ -4,6 +4,7 @@ from __future__ import division
 import sys,os,glob
 import logging
 import json
+import argparse
 
 from lenstools.image.convergence import ConvergenceMap
 from lenstools.image.noise import GaussianNoiseGenerator
@@ -129,12 +130,23 @@ def convergence_moments(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=Fals
 
 if __name__=="__main__":
 
+	#Command line argiments
+	parser = argparse.ArgumentParser()
+	parser.add_argument("-c","--config",dest="config",action="store",default=None,help="config file")
+	parser.add_argument("-s","--smooth",dest="smooth",action="store",type=float,default=None,help="smoothing scale in arcmin")
+	cmd_args = parser.parse_args()
+
+	#Make sure config is provided
+	if cmd_args.config is None:
+		parser.print_help()
+		sys.exit(1)
+
 	#Globals
 	logging.basicConfig(level=logging.INFO)
 	measurers = globals()
 
 	#Read options from json config file
-	with open(sys.argv[1],"r") as fp:
+	with open(cmd_args.config,"r") as fp:
 		options = json.load(fp)
 
 	#Initialize MPIPool
@@ -157,6 +169,8 @@ if __name__=="__main__":
 
 	#Smoothing
 	smoothing = options["smoothing"]
+	if cmd_args.smooth is not None:
+		smoothing = cmd_args.smooth
 
 	#Savename
 	savename = options["method"]
@@ -191,10 +205,10 @@ if __name__=="__main__":
 	
 	#####################################################################################################################
 
-	for model in batch.models:
+	for model in [ batch.getModel("Om0.260_Ode0.740_w-1.000_wa0.000_si0.800") ]:
 
 		#Perform the measurements for all the map sets
-		for map_set in model["c0"].mapsets:
+		for map_set in [ model["c0"].getMapSet("kappa"),model["c0"].getMapSet("kappaBorn"),model["c0"].getMapSet("kappaB+LL"),model["c0"].getMapSet("kappaB+GP") ]:
 
 			#Log to user
 			logging.info("Processing model {0}, map set {1}".format(map_set.cosmo_id,map_set.settings.directory_name))
