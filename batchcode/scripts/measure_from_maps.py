@@ -173,7 +173,7 @@ def cross_kurtGP(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=
 
 		#Measure connected cross kurtosis
 		kurt = 4*((conv.data**3)*conv2.data).mean() - 12*((conv.data**2).mean())*(conv.data*conv2.data).mean()
-		return np.array([(3*(conv.data**2)*(conv2.data)).mean()])
+		return np.array([kurt])
 
 	except IOError:
 		return None
