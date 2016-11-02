@@ -2,6 +2,9 @@
 from __future__ import division
 
 import sys,os,argparse
+from operator import add
+from functools import reduce
+
 sys.modules["mpi4py"] = None
 
 import itertools
@@ -53,7 +56,7 @@ def convergenceVisualize(cmd_args,smooth=0.5*u.arcmin,fontsize=22):
 	#Load data
 	cborn = ConvergenceMap.load(os.path.join(fiducial["c0"].getMapSet("kappaBorn").home,"born_z2.00_0001r.fits"))
 	cray = ConvergenceMap.load(os.path.join(fiducial["c0"].getMapSet("kappa").home,"WLconv_z2.00_0001r.fits"))
-	cll = ConvergenceMap.load(os.path.join(fiducial["c0"].getMapSet("kappaGP").home,"postBorn2-ll_z2.00_0001r.fits"))
+	cll = ConvergenceMap.load(os.path.join(fiducial["c0"].getMapSet("kappaLL").home,"postBorn2-ll_z2.00_0001r.fits"))
 	cgp = ConvergenceMap.load(os.path.join(fiducial["c0"].getMapSet("kappaGP").home,"postBorn2-gp_z2.00_0001r.fits"))
 
 	#Smooth
@@ -68,9 +71,9 @@ def convergenceVisualize(cmd_args,smooth=0.5*u.arcmin,fontsize=22):
 
 	#Titles
 	ax[0,0].set_title(r"$\kappa$",fontsize=fontsize)
-	ax[0,1].set_title(r"$\kappa-\kappa^{\rm born}$",fontsize=fontsize)
-	ax[1,0].set_title(r"$\kappa^{\rm ll}$",fontsize=fontsize)
-	ax[1,1].set_title(r"$\kappa^{\rm geo}$",fontsize=fontsize)
+	ax[0,1].set_title(r"$\kappa-\kappa_{\rm born}$",fontsize=fontsize)
+	ax[1,0].set_title(r"$\kappa_{\rm ll}$",fontsize=fontsize)
+	ax[1,1].set_title(r"$\kappa_{\rm geo}$",fontsize=fontsize)
 
 	#Switch off grids
 	for i in (0,1):
@@ -121,6 +124,128 @@ def powerResiduals(cmd_args,fontsize=22):
 	#Save
 	fig.tight_layout()
 	fig.savefig("powerResiduals."+cmd_args.type)
+
+####################################################################################################################
+####################################################################################################################
+
+def plotSmooth(cmd_args,lines,moment=2,smooth=(0.5,1.,2.,3.,5.,7.,10.),ylabel=None,fontsize=22):
+
+	#Set up plot
+	fig,ax = plt.subplots()
+
+	#Load reference data
+	reference = list()
+	for s in smooth:
+		reference.append(np.load(os.path.join(fiducial["c0"].getMapSet("kappaBorn").home,"convergence_moments_s{0}_nb9.npy".format(int(s*100))))[:,moment].mean())
+	reference = np.array(reference)
+
+	#Plot each of the lines
+	lk = lines.keys()
+	lk.sort(key=lambda k:lines[k][-1])
+
+	for l in lk:
+		ms,feat,idx,subtract,color,linestyle,order = lines[l]
+		data = list()
+
+		for s in smooth:
+			addends = [ np.load(os.path.join(fiducial["c0"].getMapSet(ms).home,f.format(int(s*100))))[:,idx].mean() for f in feat ]
+			data.append(reduce(add,addends))
+
+		data = np.array(data)
+		if subtract:
+			data-=reference
+
+		ax.plot(smooth,data/reference,color=sns.xkcd_rgb[color],linestyle=linestyle,label=l)
+
+
+	#Labels
+	ax.set_xlabel(r"$\theta_G({\rm arcmin})$",fontsize=fontsize)
+	ax.set_ylabel(ylabel,fontsize=fontsize)
+	ax.legend(loc="upper center",prop={"size":13})
+
+	#Save
+	fig.savefig("delta_m{0}.{1}".format(moment,cmd_args.type))
+
+def plotSmoothSkew(cmd_args,smooth=(0.5,1.,2.,3.,5.,7.,10.),fontsize=22):
+
+	moment = 2 
+
+	#Lines to plot
+	lines = {
+
+	r"$\kappa^3_{\rm full}-\kappa^3_{\rm born}$" : ("kappa",("convergence_moments_s{0}_nb9.npy",),moment,True,"denim blue","-",0),
+	r"$\kappa^3_{\rm born+geo}-\kappa^3_{\rm born}$" : ("kappaB+GP",("convergence_moments_s{0}_nb9.npy",),moment,True,"medium green","-",1),
+	r"$\kappa^3_{\rm born+ll}-\kappa^3_{\rm born}$" : ("kappaB+LL",("convergence_moments_s{0}_nb9.npy",),moment,True,"pale red","-",2),
+	r"$3\kappa^2_{\rm born}\kappa_{\rm geo}$" : ("kappaBorn",("cross_skewGP_s{0}_nb1.npy",),0,False,"medium green","--",3),
+	r"$3\kappa^2_{\rm born}\kappa_{\rm ll}$" : ("kappaBorn",("cross_skewLL_s{0}_nb1.npy",),0,False,"pale red","--",4),
+	r"$3\kappa^2_{\rm born}\kappa_{\rm ll}+3\kappa^2_{\rm born}\kappa_{\rm geo}$" : ("kappaBorn",("cross_skewLL_s{0}_nb1.npy","cross_skewGP_s{0}_nb1.npy"),0,False,"denim blue","--",5),
+
+	}
+
+	plotSmooth(cmd_args,lines,moment=moment,smooth=smooth,ylabel=r"$\langle\delta\kappa^3\rangle/\langle\kappa^3\rangle$",fontsize=fontsize)
+
+def plotSmoothKurt(cmd_args,smooth=(0.5,1.,2.,3.,5.,7.,10.),fontsize=22):
+
+	moment = 5 
+
+	#Lines to plot
+	lines = {
+
+	r"$\kappa^4_{\rm full}-\kappa^4_{\rm born}$" : ("kappa",("convergence_moments_s{0}_nb9.npy",),moment,True,"denim blue","-",0),
+	r"$\kappa^4_{\rm born+geo}-\kappa^4_{\rm born}$" : ("kappaB+GP",("convergence_moments_s{0}_nb9.npy",),moment,True,"medium green","-",1),
+	r"$\kappa^4_{\rm born+ll}-\kappa^4_{\rm born}$" : ("kappaB+LL",("convergence_moments_s{0}_nb9.npy",),moment,True,"pale red","-",2),
+	r"$4\kappa^3_{\rm born}\kappa_{\rm geo}$" : ("kappaBorn",("cross_kurtGP_s{0}_nb1.npy",),0,False,"medium green","--",3),
+	r"$4\kappa^4_{\rm born}\kappa_{\rm ll}$" : ("kappaBorn",("cross_kurtLL_s{0}_nb1.npy",),0,False,"pale red","--",4),
+	r"$4\kappa^3_{\rm born}\kappa_{\rm ll}+4\kappa^3_{\rm born}\kappa_{\rm geo}$" : ("kappaBorn",("cross_kurtLL_s{0}_nb1.npy","cross_kurtGP_s{0}_nb1.npy"),0,False,"denim blue","--",5),
+
+	}
+
+	plotSmooth(cmd_args,lines,moment=moment,smooth=smooth,ylabel=r"$\langle\delta\kappa^4\rangle_c/\langle\kappa^4\rangle_c$",fontsize=fontsize)
+
+####################################################################################################################
+####################################################################################################################
+
+def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn"),figname="pdfMoments",fontsize=22):
+
+	#Moment labels
+	moment_labels = (
+		r"$\langle\kappa^2\rangle$",r"$\langle\vert\nabla\kappa\vert^2\rangle$",
+		r"$\langle\kappa^3\rangle$",r"$\langle\kappa^2\nabla^2\kappa\rangle$",r"$\langle\vert\nabla\kappa\vert^2\nabla^2\kappa\rangle$",
+		r"$\langle\kappa^4\rangle_c$",r"$\langle\kappa^3\nabla^2\kappa\rangle_c$",r"$\langle\kappa\vert\nabla\kappa\vert^2\nabla^2\kappa\rangle_c$",r"$\langle\vert\nabla\kappa\vert^4\rangle_c$"
+		)
+	
+	#Model labels
+	model_labels = {"kappa":"full","kappaBorn":"born","kappaBornRT":"hybrid","kappaB+GP":"born+geo"}
+
+	#Set up plot
+	fig,axes = plt.subplots(3,3,figsize=(24,)*2)
+
+	#Bootstrap mean to mimic LSST
+	bootstrap_mean = lambda e: e.values.mean(0)
+
+	#PDF for each kappa model
+	for km in kappa_models:
+
+		#Load samples
+		fname = os.path.join(fiducial["c0"].getMapSet(km).home,"convergence_moments_s50_nb9.npy")
+		samples = Ensemble.read(fname).bootstrap(bootstrap_mean,bootstrap_size=1000,resample=1000)
+
+		#Plot each bin
+		for bn,ax in enumerate(axes.flatten()):
+			ax.hist(samples[:,bn],bins=50,label=model_labels[km])
+
+	#Axes labels
+	for bn,ax in enumerate(axes.flatten()):
+		ax.legend()
+		ax.set_title(moment_labels[bn],fontsize=fontsize)
+
+	#Scientific notation
+	for ax in axes.flatten():
+		plt.setp(ax.get_xticklabels(),rotation=30)
+
+	#Save
+	fig.tight_layout()
+	fig.savefig(figname+".{0}".format(cmd_args.type))
 
 ###################################################################################################
 ###################################################################################################
@@ -276,81 +401,6 @@ def pdfSkew(cmd_args):
 
 	pdfPlot(cmd_args,features=features,figname=figname)
 
-####################################################################################################################
-
-def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn"),figname="pdfMoments",fontsize=22):
-
-	#Moment labels
-	moment_labels = (
-		r"$\langle\kappa^2\rangle$",r"$\langle\vert\nabla\kappa\vert^2\rangle$",
-		r"$\langle\kappa^3\rangle$",r"$\langle\kappa^2\nabla^2\kappa\rangle$",r"$\langle\vert\nabla\kappa\vert^2\nabla^2\kappa\rangle$",
-		r"$\langle\kappa^4\rangle_c$",r"$\langle\kappa^3\nabla^2\kappa\rangle_c$",r"$\langle\kappa\vert\nabla\kappa\vert^2\nabla^2\kappa\rangle_c$",r"$\langle\vert\nabla\kappa\vert^4\rangle_c$"
-		)
-	
-	#Model labels
-	model_labels = {"kappa":"full","kappaBorn":"born","kappaBornRT":"hybrid","kappaB+GP":"born+geo"}
-
-	#Set up plot
-	fig,axes = plt.subplots(3,3,figsize=(24,)*2)
-
-	#Bootstrap mean to mimic LSST
-	bootstrap_mean = lambda e: e.values.mean(0)
-
-	#PDF for each kappa model
-	for km in kappa_models:
-
-		#Load samples
-		fname = os.path.join(fiducial["c0"].getMapSet(km).home,"convergence_moments_s50_nb9.npy")
-		samples = Ensemble.read(fname).bootstrap(bootstrap_mean,bootstrap_size=1000,resample=1000)
-
-		#Plot each bin
-		for bn,ax in enumerate(axes.flatten()):
-			ax.hist(samples[:,bn],bins=50,label=model_labels[km])
-
-	#Axes labels
-	for bn,ax in enumerate(axes.flatten()):
-		ax.legend()
-		ax.set_title(moment_labels[bn],fontsize=fontsize)
-
-	#Scientific notation
-	for ax in axes.flatten():
-		plt.setp(ax.get_xticklabels(),rotation=30)
-
-	#Save
-	fig.tight_layout()
-	fig.savefig(figname+".{0}".format(cmd_args.type))
-
-####################################################################################################################
-
-def plotSmooth(cmd_args,reference="kappaBorn",variations=("kappa","kappaB+GP","kappaB+LL"),moment_index=2,smooth=(0.5,1.0,2.0),fontsize=22):
-
-	#Model labels
-	labels = {"kappaBorn":"born","kappa":"full","kappaB+GP":"geodesic","kappaB+LL":"lens-lens"}
-
-	#Set up plot
-	fig,ax = plt.subplots()
-
-	#Load data
-	moments = dict()
-	for l in (reference,)+variations:
-		moments[l] = list()
-
-	for s in smooth:
-		for l in (reference,)+variations:
-			samples = np.load(os.path.join(fiducial["c0"].getMapSet(l).home,"convergence_moments_s{0}_nb9.npy".format(int(smooth*100))))
-			moments[l].append(samples[:,moment_index].mean(0))
-
-	#Plot
-	for v in variations:
-		ax.plot(smooth,moments[v]/moments[reference]-1.0,label=labels[v])
-
-	#Labels
-	ax.set_xlabel(r"$\theta_G({\rm} arcmin)$",fontsize=fontsize)
-	ax.set_ylabel(r"$\langle\delta\kappa^3\rangle/\langle\kappa^3\rangle$",fontsize=fontsize)
-	ax.legend()
-
-	#Save
-	fig.savefig("delta_moment{0}.{1}".format(moment_index,cmd_args.type))
 
 ####################################################################################################################
 
@@ -363,11 +413,13 @@ method = dict()
 
 method["1"] = convergenceVisualize
 method["2"] = powerResiduals
-method["3"] = pdfMoments
-method["4"] = pbBiasPower
-method["4b"] = pbBiasMoments
-method["4c"] = pbBiasMomentsSN
-method["5"] = pbBiasPeaks
+method["3"] = plotSmoothSkew
+method["3b"] = plotSmoothKurt
+method["4"] = pdfMoments
+method["5"] = pbBiasPower
+method["5b"] = pbBiasMoments
+method["5c"] = pbBiasMomentsSN
+method["6"] = pbBiasPeaks
 
 #Main
 def main():

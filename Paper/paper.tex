@@ -55,7 +55,7 @@
 \label{firstpage}
 
 \begin{abstract}
-Accurate forward modeling of Weak Lensing (WL) observables from cosmological parameters is a necessary tool for upcoming galaxy surveys. Because WL probes structures in the non--linear regime, analytical forward modeling is very challenging, if not impossible. Numerical simulations of WL features rely on ray--tracing through the outputs of $N$--body simulations, which requires knowledge of the gravitational potential and accurate solvers for light ray trajectories. A cheaper but less accurate procedure based on the Born approximation, on the other hand, requires knowledge of the density only and can be implemented more efficiently and at lower computational cost. In this work we show that geodesic perturbations are the dominant correction to the Born approximation, lens-lens couplings being negligible. We also show that, although the Born approximation does not accurately predict WL convergence moments in the noiseless case, once galaxy shape noise is added the loss of accuracy is negligible even for a LSST--like survey, due to the increased statistical errors.    
+Accurate forward modeling of Weak Lensing (WL) observables from cosmological parameters is a necessary tool for upcoming galaxy surveys. Because WL probes structures in the non--linear regime, analytical forward modeling is very challenging, if not impossible. Numerical simulations of WL features rely on ray--tracing through the outputs of $N$--body simulations, which requires knowledge of the gravitational potential and accurate solvers for light ray trajectories. A cheaper but less accurate procedure based on the Born approximation, on the other hand, requires knowledge of the density only and can be implemented more efficiently and at lower computational cost. In this work we show that the deviations of the Born--approximated convergence power spectrum, skewness and kurtosis from the ray--traced ones are consistent with the smallest non trivial post--Born corrections. We also show that perturbative approaches to the post--Born corrections break down at higher orders, making full ray--tracing more reliable. Because we find that cosmological parameter biases induced by the Born approximation are negligible even for an LSST--like survey once galaxy shape noise is considered, we argue that the Born approximation is preferred for future analysis. Using the \ttt{LensTools} software suite, we show that the Born approximation saves a factor of 4 in computing time with respect to the full ray--tracing in reconstructing the convergence.       
 \end{abstract}
 
 
@@ -124,14 +124,14 @@ We indicated the partial derivatives of the lensing potential $\Phi$ with respec
 \kappa(\pt,\chi_s) = 1-\frac{1}{2}{\rm tr}\left[\bb{A}(\pt,\chi_s)\right]
 \end{equation}
 %
-The implicit form of equation (\ref{sim:jacsol}) suggests a straightforward way to solve the geodesic equation numerically because $A(\pt,\chi_s)$ can be expressed once one knows $A(\pt,\chi)$ for $\chi<\chi_s$. The multi--lens--plane algorithm \citep{RayTracingJain,RayTracingHartlap} is a popular method to compute the integral in (\ref{sim:jacsol}) in discrete steps (lenses) by keeping track of the intermediate values $A(\pt,\chi)$ using dynamic programming. To carry out the geodesic calculations we make use of the \ttt{LensTools} software package \citep{LensTools-paper}, which provides a {\sc python} implementation of the multi--lens--plane algorithm. The exact solution of (\ref{sim:geodiff}) based on (\ref{sim:jacsol}) is computationally expensive because it requires knowledge of the lensing potential $\Phi$. In the next paragraph we review the details of a computationally cheaper but approximate approach based on the Born approximation.     
+The implicit form of equation (\ref{sim:jacsol}) suggests a straightforward way to solve the geodesic equation numerically because $A(\pt,\chi_s)$ can be calculated once $A(\pt,\chi)$ for $\chi<\chi_s$ is known. The multi--lens--plane algorithm \citep{RayTracingJain,RayTracingHartlap} is a popular method to compute the integral in (\ref{sim:jacsol}) in discrete steps (lenses) by keeping track of the intermediate values $A(\pt,\chi)$ using dynamic programming. To carry out the geodesic calculations we make use of the \ttt{LensTools} software package \citep{LensTools-paper}, which provides a {\sc python} implementation of the multi--lens--plane algorithm. The exact solution of (\ref{sim:geodiff}) based on (\ref{sim:jacsol}) is computationally expensive because it requires knowledge of the lensing potential $\Phi$. In the next paragraph we review the details of a computationally cheaper but approximate approach based on the Born approximation.     
 
 \subsection{Born approximation}
 The integral in (\ref{sim:jacsol}) can be approximated using a series expansion in powers of $\Phi$, which can yield acceptable results in the limit in which $\Phi$ is small. To compute the lowest order approximation to (\ref{sim:jacsol}) one notes that the lensing potential appears on the right hand side and hence we can replace the Jacobian on the right hand side with its zeroth order expression, i.e. the identity matrix. We can also replace the real ray trajectory $\bb{x}_\perp(\chi,\pt)$ with the unperturbed one, i.e. $\chi\pt$. This yields an expression for $\kappa$ at first order in $\Phi$
 
 \begin{equation}
 \label{sim:born}
-\kappa^{\rm born}(\pt,\chi_s) = \frac{3H_0^2\Omega_m}{2c^2}\int_0^{\chi_s} d\chi\frac{\chi}{a(\chi)} W(\chi,\chi_s)\delta(\chi\pt,\chi)
+\kappa_{\rm born}(\pt,\chi_s) = \frac{3H_0^2\Omega_m}{2c^2}\int_0^{\chi_s} d\chi\frac{\chi}{a(\chi)} W(\chi,\chi_s)\delta(\chi\pt,\chi)
 \end{equation}
 %
 The Born approximated convergence in equation (\ref{sim:born}) has a simple interpretation: at lowest order in the lensing potential, $\kappa$ is the integrated matter density on the unperturbed line of sight, weighted by the lensing kernel $W$. Contrary to the exact ray--tracing approach, the Born approximation does not required knowledge of the solution to the Poisson equation (\ref{sim:poisson}) and is hence computationally cheaper. In the next paragraph we examine the corrections to the Born approximation that come at second order in the potential $\Phi$.  
@@ -141,7 +141,7 @@ Equation (\ref{sim:jacsol}) allows to express the convergence $\kappa$ at arbitr
 
 \begin{equation}
 \label{sim:pb2}
-\kappa = \kappa^{\rm born} + \kappa^{\rm ll} + \kappa^{\rm geo} + O(\Phi^3)
+\kappa = \kappa_{\rm born} + \kappa_{\rm ll} + \kappa_{\rm geo} + O(\Phi^3)
 \end{equation}
 %
 The second order corrections can be expressed as double integrals along the unperturbed line of sight
@@ -150,17 +150,37 @@ The second order corrections can be expressed as double integrals along the unpe
 
 \begin{equation}
 \label{sim:ll}
-\kappa^{\rm ll}(\pt,\chi_s) = \int_0^{\chi_s}d\chi\int_0^\chi d\chi' \chi\chi' W(\chi,\chi_s)W(\chi',\chi)\Phi_{ij}(\chi\pt,\chi)\Phi_{ij}(\chi'\pt,\chi')
+\kappa_{\rm ll}(\pt,\chi_s) = \int_0^{\chi_s}d\chi\int_0^\chi d\chi' \chi\chi' W(\chi,\chi_s)W(\chi',\chi)\Phi_{ij}(\chi\pt,\chi)\Phi_{ij}(\chi'\pt,\chi')
 \end{equation}
 
 \begin{equation}
 \label{sim:gp}
-\kappa^{\rm geo}(\pt,\chi_s) = \frac{3H_0^2\Omega_m}{2c^2}\int_0^{\chi_s}d\chi\int_0^\chi d\chi' \frac{\chi\chi'}{a(\chi')} W(\chi,\chi_s)W(\chi',\chi)\nabla_\perp\Phi(\chi\pt,\chi)\cdot\nabla_\perp\delta(\chi'\pt,\chi')
+\kappa_{\rm geo}(\pt,\chi_s) = \frac{3H_0^2\Omega_m}{2c^2}\int_0^{\chi_s}d\chi\int_0^\chi d\chi' \frac{\chi\chi'}{a(\chi')} W(\chi,\chi_s)W(\chi',\chi)\nabla_\perp\Phi(\chi\pt,\chi)\cdot\nabla_\perp\delta(\chi'\pt,\chi')
 \end{equation}
 
 \end{widetext}
 %
-These second order expression have a simple physical interpretation. Equation (\ref{sim:ll}) encodes the post--Born correction to the convergence due to non local quadratic lens--lens couplings, which add to the density line of sight integration in (\ref{sim:born}). Equation (\ref{sim:gp}), on the other hand, encodes the integral of the density contrast on the real light ray trajectory, at lowest order in the geodesic deflections. The line of sight integrals (\ref{sim:born}), (\ref{sim:ll}) and (\ref{sim:gp}) can be computed efficiently with runtime that scales linearly with the number of lenses using the functionality of the \ttt{LensTools} suite \citep{LensTools-paper}. A sample of the simulation outputs is shown in Figure \ref{fig:csample}. In the next section we show how to infer cosmological parameters from WL features forward models applied to observations.  
+These second order expression have a simple physical interpretation. Equation (\ref{sim:ll}) encodes the post--Born correction to the convergence due to non local quadratic lens--lens couplings, which add to the density line of sight integration in (\ref{sim:born}). Equation (\ref{sim:gp}), on the other hand, encodes the integral of the density contrast on the real light ray trajectory, at lowest order in the geodesic deflections. The line of sight integrals (\ref{sim:born}), (\ref{sim:ll}) and (\ref{sim:gp}) can be computed efficiently with runtime that scales linearly with the number of lenses using the functionality of the \ttt{LensTools} suite \citep{LensTools-paper}. A sample of the simulation outputs is shown in Figure \ref{fig:csample}. Benchmarks for the runtime of the ray--tracing and line--of--sight integrals operations, performed with \ttt{LensTools}, are provided in Table \ref{tab:benchmarks}. 
+In the next section we show how to infer cosmological parameters from WL features forward models applied to observations.  
+
+\begin{table*}
+\begin{center}
+
+\begin{tabular}{c|c|c|c}
+
+\textbf{Integration type} & \textbf{Runtime (One field of view)} & \textbf{Memory usage} & \textbf{CPU time (1000 fields of view)} \\ \hline \hline
+Born & 36.0\,s & 0.86\,GB & 10\,hours  \\
+Full ray--tracing & 124.8\,s & 1.65\,GB & 35\,hours  \\
+Born + $O(\Phi^2)$ & 156.7\,s & 1.52\,GB & 44\,hours \\ \hline
+
+\end{tabular}
+
+\end{center}
+
+\caption{Time and memory usage benchmarks for the convergence reconstruction operations. The test case we considered consists in a discretization with 42 uniformly spaced lenses between the observer and the sources at $z_s=2$, each with a resolution of $4096^2$ pixels. The $\kappa$ field is resolved with $2048^2$ light rays. We show both the runtime for producing a single field of view and the CPU hours needed to perform the reconstruction 1000 times, to mock an LSST--like galaxy survey.}
+\label{tab:benchmarks}
+
+\end{table*}
 
 \begin{figure*}
 \begin{center}
@@ -246,15 +266,24 @@ Where the expectation values are taken with respect to pixels and the subscript 
 
 \section{Results}
 % 
+In this section we presents the results of this work, regarding the WL feature forward model accuracy and the cosmological parameter bias induced by the Born approximation.
+
 \begin{figure*}
 \begin{center}
 \includegraphics[scale=0.3]{Figures/powerResiduals.eps}
 \end{center}
-\caption{Contributions of different $\Phi$ orders to the $\kappa$ power spectrum: the left panel shows the auto power spectra $P_{\rm born,born}$ ($O(\Phi^2)$) and $P_{\rm ll},P_{\rm geo}$ ($O(\Phi^4)$). The right panel shows the residuals between the power spectrum of the full ray--traced $\kappa$ field and the one obtained with the Born approximation. The residuals are compared to the two $O(\Phi^3)$ terms $2P_{\rm born,ll},2P_{\rm born,geo}$. The quantities shown are the averages over 8192 realizations of $\kappa$ in the fiducial cosmology $\bb{p}_0$.}
+\caption{Contributions of different $\Phi$ orders to the $\kappa$ power spectrum: the left panel shows the auto power spectra $P_{\rm born,born}$ ($O(\Phi^2)$) and $P_{\rm ll},P_{\rm geo}$ ($O(\Phi^4)$). The right panel shows the residuals between the power spectrum of the full ray--traced $\kappa$ field and the one obtained with the Born approximation. The residuals are compared to the two $O(\Phi^3)$ terms $2P_{\rm born,ll},2P_{\rm born,geo}$. The quantities shown are the ensemble averages over 8192 realizations of $\kappa$ in the fiducial cosmology $\bb{p}_0$.}
 \label{fig:psResiduals}
 \end{figure*}
-%
-We also studied the accuracy of the Born approximation in predicting the 9 higher order convergence moments defined in (\ref{par:moments}). The results are shown in Figure \ref{fig:pdfMoments}. 
+
+\begin{figure*}
+\begin{center}
+\includegraphics[scale=0.4]{Figures/delta_m2.eps}
+\includegraphics[scale=0.4]{Figures/delta_m5.eps}
+\end{center}
+\caption{Dominant post--Born corrections to the $\kappa$ skewness and kurtosis due to lens--lens coupling and geodesic perturbation, as a function of the scale $\theta_G$ of the Gaussian smoothing window. We show the contributions of the lens--lens couplings (red) and the geodesic perturbation (green). We show both the cases in which the residuals $\delta\kappa^3,\delta\kappa^4$ are computed adding equations (\ref{sim:ll},\ref{sim:gp}) to the Born field (solid lines) and in which the residuals are computed from the dominant $\Phi$ orders only as in equations (\ref{res:skewcross},\ref{res:kurtcross}) (dashed lines). The quantities shown are the ensemble averages over 8192 realizations of $\kappa$ in the fiducial cosmology $\bb{p}_0$.}
+\label{fig:skResiduals}
+\end{figure*} 
 
 \begin{figure*}
 \begin{center}
@@ -274,15 +303,9 @@ We also studied the accuracy of the Born approximation in predicting the 9 highe
 \label{fig:parbias}
 \end{figure*}
 
-
-\subsection{Parameter bias}
-When using forward models based on the Born approximation to fit observations, parameter biases may occur if the forward model is not accurate enough. We studied if this is the case by simulating 1000 LSST--like observations in which the convergence field $\kappa(\pt)$ is constructed using the full ray--tracing procedure. We used the Born approximation to fit these mock observations using the Fisher parameter estimator in (\ref{par:fisherest}). The results are shown in Figure \ref{fig:parbias}. 
-
-In this section we presents the results of this work, regarding the WL feature forward model accuracy and the cosmological parameter bias induced by the Born approximation. 
-
 \subsection{Forward model accuracy}
 
-In this paragraph we compare the accuracy of the Born approximation in predicting WL image features, in particular we focus on the $\kappa$ power spectrum and the 9 moments described in equation (\ref{par:moments}). Figure \ref{fig:psResiduals} shows the auto power spectra of $\kappa^{\rm born},\kappa^{\rm ll},\kappa^{\rm geo}$ as defined in equation (\ref{sim:pb2}). At lowest order the lensing potential contributes to the $\kappa$ power spectrum quadratically. The first post--Born correction to $P^{\kappa\kappa}$ comes to $O(\Phi^3)$ and is given by
+In this paragraph we compare the accuracy of the Born approximation in predicting WL image features, in particular we focus on the $\kappa$ power spectrum and the 9 moments described in equation (\ref{par:moments}). Figure \ref{fig:psResiduals} shows the auto power spectra of $\kappa_{\rm born},\kappa_{\rm ll},\kappa_{\rm geo}$ as defined in equation (\ref{sim:pb2}). At lowest order the lensing potential contributes to the $\kappa$ power spectrum quadratically. The first post--Born correction to $P^{\kappa\kappa}$ comes to $O(\Phi^3)$ and is given by
 \begin{equation}
 \label{res:powercorr}
 P^{\kappa\kappa} = P^{\kappa\kappa}_{\rm born,born} + 2P^{\kappa\kappa}_{\rm born,ll} + 2P^{\kappa\kappa}_{\rm born,geo} + O(\Phi^4)
@@ -291,20 +314,42 @@ P^{\kappa\kappa} = P^{\kappa\kappa}_{\rm born,born} + 2P^{\kappa\kappa}_{\rm bor
 Where we defined the $\kappa$ cross spectra as
 \begin{equation}
 \label{res:powercross}
-\langle\tilde{\kappa}^{a}(\pmb{\ell})\tilde{\kappa}^{b,*}(\pmb{\ell}')\rangle = (2\pi)^2\delta^D(\pmb{\ell}+\pmb{\ell}')P_{a,b}^{\kappa\kappa}(\ell)
+\langle\tilde{\kappa}_a(\pmb{\ell})\tilde{\kappa}_b^*(\pmb{\ell}')\rangle = (2\pi)^2\delta^D(\pmb{\ell}+\pmb{\ell}')P_{a,b}^{\kappa\kappa}(\ell)
 \end{equation} 
 %
 Figure \ref{fig:psResiduals} shows the magnitudes of the $O(\Phi^3)$ post--Born corrections to the convergence power spectrum. 
+A similar analysis can be carried out for the skewness and kurtosis of the $\kappa$ field. The main contributions to the skewness and kurtosis are $O(\Phi^3),O(\Phi^4)$ respectively. The first post--Born corrections, on the other hand, come at $O(\Phi^5),O(\Phi^6)$. More in detail we have
+
+\begin{equation}
+\label{res:skewcross}
+\langle\kappa^3\rangle = \langle\kappa_{\rm born}^3\rangle + 3\langle\kappa_{\rm born}^2\kappa_{\rm ll}\rangle + 3\langle\kappa_{\rm born}^2\kappa_{\rm geo}\rangle + O(\Phi^5) 
+\end{equation}
+
+\begin{equation}
+\label{res:kurtcross}
+\langle\kappa^4\rangle_c = \langle\kappa_{\rm born}^4\rangle_c + 4\langle\kappa_{\rm born}^3\kappa_{\rm ll}\rangle_c + 4\langle\kappa_{\rm born}^3\kappa_{\rm geo}\rangle_c + O(\Phi^6)
+\end{equation}
+%
+Where the kurtosis connected components are defined as 
+\begin{equation}
+\label{res:kurtconnected}
+\langle\kappa^3_a\kappa_b\rangle_c = \langle\kappa^3_a\kappa_b\rangle - 3\langle\kappa_a^2\rangle\langle\kappa_a\kappa_b\rangle
+\end{equation}
+The magnitude of the post--Born corrections to the $\kappa$ skewness and kurtosis in equations (\ref{res:skewcross},\ref{res:kurtcross}) are shown in Figure \ref{fig:skResiduals}.
+We also studied the accuracy of the Born approximation in predicting the 9 higher order convergence moments defined in (\ref{par:moments}). The results are shown in Figure \ref{fig:pdfMoments}.
+
+\subsection{Parameter bias}
+When using forward models based on the Born approximation to fit observations, parameter biases may occur if the forward model is not accurate enough. We studied if this is the case by simulating 1000 LSST--like observations in which the convergence field $\kappa(\pt)$ is constructed using the full ray--tracing procedure. We used the Born approximation to fit these mock observations using the Fisher parameter estimator in (\ref{par:fisherest}). The results are shown in Figure \ref{fig:parbias}.  
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% DISCUSSION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Discussion}
 % 
-In this section we discuss our main findings. Figure \ref{fig:csample} shows that the dominant post--Born correction to the $\kappa$ reconstruction comes from the geodesic term (\ref{sim:gp}). This can be shown both looking at the lens-lens term, which is one order of magnitude smaller than the geodesic term, and looking at the $\kappa-\kappa^{\rm born}$ residuals, which show similar structure to the ones found in the $\kappa^{\rm geo}$ map. 
+In this section we discuss our main findings. Figure \ref{fig:csample} shows that the dominant post--Born correction to the $\kappa$ reconstruction comes from the geodesic term (\ref{sim:gp}). This can be shown both looking at the lens-lens term, which is one order of magnitude smaller than the geodesic term, and looking at the $\kappa-\kappa_{\rm born}$ residuals, which show similar structure to the ones found in the $\kappa_{\rm geo}$ map. 
 
-Figure \ref{fig:psResiduals} shows a comparison between the Born approximated $\kappa$ power spectra and the ones obtained with full ray--tracing, separating different orders in $\Phi$. We can conclude that the dominant contributions to the residuals come from the Born--geodesic cross power, which dominates the Born--lens--lens cross power by two orders of magnitude on small scales. Figure \ref{fig:psResiduals} also gives indications that the perturbation series in powers of $\Phi$ becomes asymptotic on small angular scales as the higher orders $O(\Phi^4)$ tend to dominate the leading orders. This is likely due to the non--linearity of the density contrast on small scales. 
+Figure \ref{fig:psResiduals} shows a comparison between the Born approximated $\kappa$ power spectra and the ones obtained with full ray--tracing, separating different orders in $\Phi$. We can conclude that the dominant contributions to the residuals come from the Born--geodesic cross power, which dominates the Born--lens--lens cross power by two orders of magnitude on small scales. Figure \ref{fig:skResiduals} shows that the geodesic and lens--lens contributions to the $\kappa$ skewness and kurtosis are comparable and that the lowest non trivial post--Born corrections can fully account for the discrepancy between the Born approximated quantities and the ray--traced ones.  Both Figures \ref{fig:psResiduals} and \ref{fig:skResiduals} give indications about the fact that the post--Born perturbation series break down at high orders in the lensing potential. In particular geodesic perturbations cannot be predicted accurately by a perturbation series, higher orders in $\Phi$ being dominant over smaller orders. We do not see this as an important limitation as the computational cost of the $O(\Phi^2)$ line--of--sight integrals is roughly the same as the ray--tracing one, as shown in Table \ref{tab:benchmarks}.  
 
-Figure \ref{fig:pdfMoments} shows the PDF of the 9 $\kappa$ moments defined in (\ref{par:moments}) over 1000 realizations of an LSST--like survey. The plot clearly shows that, while the Born approximation is a good predictor of the quadratic moments $\pmb{\mu}_2$ within one standard deviation, the higher moments $\pmb{\mu}_3,\pmb{\mu}_4$ show $2\div 3\sigma$ deviations from their Born approximated counterparts. This can lead to parameter biases when fitting observations. Figure \ref{fig:parbias} studies this possibility and shows that, while the Born approximation is sufficient to fit cosmology with the power spectrum of an LSST--like survey, even in the noiseless case, the same is not true for the higher $\kappa$ moments. The middle panel of Figure \ref{fig:parbias} show that high significance biases are observed when fitting a real observation with Born approximated $\kappa$ moments. The bias however disappears when introducing galaxy shape noise, due to the resulting increased statistical error.  
+Figure \ref{fig:pdfMoments} shows the PDF of the 9 $\kappa$ moments defined in (\ref{par:moments}) over 1000 realizations of an LSST--like survey. The plot clearly shows that, while the Born approximation is a good predictor of the quadratic moments $\pmb{\mu}_2$ within one standard deviation, the higher moments $\pmb{\mu}_3,\pmb{\mu}_4$ show $2\div 3\sigma$ deviations from their Born approximated counterparts. This can lead to parameter biases when fitting observations. Figure \ref{fig:parbias} studies this possibility and shows that, while the Born approximation is sufficient to fit cosmology with the power spectrum of an LSST--like survey, even in the noiseless case, the same is not true for the higher $\kappa$ moments. The middle panel of Figure \ref{fig:parbias} shows that high significance biases are observed when fitting a real observation with Born approximated $\kappa$ moments. The bias however disappears when introducing galaxy shape noise, due to the resulting increased statistical error. This result leads us to the conclusion that the Born approximation is sufficient for future WL analyses. This approach also has the advantage of being 4 times computationally cheaper than full ray--tracing, as we show in Table \ref{tab:benchmarks} for a selected reference test case.  
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% CONCLUSIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -312,7 +357,8 @@ Figure \ref{fig:pdfMoments} shows the PDF of the 9 $\kappa$ moments defined in (
 In this work we studied the effectiveness of the Born approximation in predicting Weak Lensing observables, and studied the approximation effects on parameter constraints. Our main findings can be summarized in the following points:
 
 \begin{itemize}
-\item The main corrections to the Born approximations come from the perturbations in the light ray geodesic, with lens--lens coupling being at least one order of magnitude sub leading
+\item The lowest order post--Born corrections to the convergence power spectrum, skewness and kurtosis are sufficient to fully account for the discrepancies between ray--tracing and the Born approximation
+\item Using the \ttt{LensTools} software package, Born integration costs 4 times less than ray--tracing 
 \item The $\kappa$ power spectrum leads to negligible parameter bias for an LSST--like survey, even in the noiseless case
 \item Fitting an observation with Born approximated higher $\kappa$ moments leads to high significance bias in the $(\Omega_m,w_0,\sigma_8)$ in the noiseless case. The bias significance becomes negligible when galaxy shape noise is added due to an increased scatter in parameter estimates.   
 \end{itemize}
@@ -327,10 +373,10 @@ ACI-1053575, and at the New York Center for Computational Sciences, a
 cooperative effort between Brookhaven National Laboratory and Stony
 Brook University, supported in part by the State of New York. This
 work was supported in part by the U.S. Department of Energy under
-Contract No. DE-SC00112704, and by the NSF Grant
-No. AST-1210877 (to Z.H.) and by the Research Opportunities and
+Contract No. DE-SC00112704, the NSF Grant
+No. AST-1210877 (to Z.H.), the Research Opportunities and
 Approaches to Data Science (ROADS) program at the Institute for Data
-Sciences and Engineering at Columbia University (to Z.H.).
+Sciences and Engineering at Columbia University (to Z.H.) and a Simons Fellowship (to Z.H.).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
