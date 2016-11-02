@@ -129,9 +129,6 @@ def cross_skewGP(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
 		conv2 = ConvergenceMap.load(map_set.path(fname).replace(map_set.name,cross).replace(*fnrep))
-
-		if "0001r" in fname:
-			np.save(os.path.join(map_set.home_subdir,"num_ell_nb{0}.npy".format(len(l_edges)-1)),conv.countModes(l_edges))
 	
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
@@ -154,6 +151,35 @@ def cross_skewGP(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=
 
 def cross_skewLL(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0,cross="kappaLL",fnrep=("born_z","postBorn2-ll_z")):
 	return cross_skewGP(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=add_shape_noise,ngal=ngal,smoothing=smoothing,cross=cross,fnrep=fnrep)
+
+def cross_kurtGP(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0,cross="kappaGP",fnrep=("born_z","postBorn2-gp_z")):
+
+	try:
+		conv = ConvergenceMap.load(map_set.path(fname))
+		conv2 = ConvergenceMap.load(map_set.path(fname).replace(map_set.name,cross).replace(*fnrep))
+	
+		if add_shape_noise:
+			gen = GaussianNoiseGenerator.forMap(conv)
+			conv = conv + gen.getShapeNoise(z=z,ngal=ngal*(u.arcmin**-2),seed=hash(os.path.basename(fname))%4294967295)
+			conv2 = conv2 + gen.getShapeNoise(z=z,ngal=ngal*(u.arcmin**-2),seed=hash(os.path.basename(fname))%4294967295)
+
+		if smoothing>0.:
+			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
+			conv2 = conv2.smooth(smoothing*u.arcmin,kind="gaussianFFT")
+
+		#Subtract mean
+		conv.data -= conv.data.mean()
+		conv2.data -= conv2.data.mean()
+
+		#Measure connected cross kurtosis
+		kurt = 4*((conv.data**3)*conv2.data).mean() - 12*((conv.data**2).mean())*(conv.data*conv2.data).mean()
+		return np.array([(3*(conv.data**2)*(conv2.data)).mean()])
+
+	except IOError:
+		return None
+
+def cross_kurtLL(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0,cross="kappaLL",fnrep=("born_z","postBorn2-ll_z")):
+	return cross_kurtGP(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=add_shape_noise,ngal=ngal,smoothing=smoothing,cross=cross,fnrep=fnrep)
 
 #################################################################################
 ##############Main execution#####################################################
