@@ -192,6 +192,7 @@ if __name__=="__main__":
 	parser.add_argument("-c","--config",dest="config",action="store",default=None,help="config file")
 	parser.add_argument("-s","--smooth",dest="smooth",action="store",type=float,default=None,help="smoothing scale in arcmin")
 	parser.add_argument("-m","--maps",dest="maps",action="store",default=None,help="map sets file")
+	parser.add_argument("-C","--collection",dest="collection",action="store",default="c0",help="model collection")
 	cmd_args = parser.parse_args()
 
 	#Make sure config is provided
@@ -274,7 +275,7 @@ if __name__=="__main__":
 		#Perform the measurements for all the map sets
 		for ms in maps[cosmo_id]:
 
-			map_set = model["c0"].getMapSet(ms)
+			map_set = model[cmd_args.collection].getMapSet(ms)
 
 			#Log to user
 			logging.info("Processing model {0}, map set {1}".format(map_set.cosmo_id,map_set.settings.directory_name))
