@@ -48,16 +48,16 @@ plab = { "Om":r"$\Omega_m$", "w0":r"$w_0$", "wa":r"$w_a$", "si8":r"$\sigma_8$" }
 ###################################################################################################
 ###################################################################################################
 
-def convergenceVisualize(cmd_args,smooth=0.5*u.arcmin,fontsize=22):
+def convergenceVisualize(cmd_args,collection="c0",smooth=0.5*u.arcmin,fontsize=22):
 
 	#Initialize plot
 	fig,ax = plt.subplots(2,2,figsize=(16,16))
 
 	#Load data
-	cborn = ConvergenceMap.load(os.path.join(fiducial["c0"].getMapSet("kappaBorn").home,"born_z2.00_0001r.fits"))
-	cray = ConvergenceMap.load(os.path.join(fiducial["c0"].getMapSet("kappa").home,"WLconv_z2.00_0001r.fits"))
-	cll = ConvergenceMap.load(os.path.join(fiducial["c0"].getMapSet("kappaLL").home,"postBorn2-ll_z2.00_0001r.fits"))
-	cgp = ConvergenceMap.load(os.path.join(fiducial["c0"].getMapSet("kappaGP").home,"postBorn2-gp_z2.00_0001r.fits"))
+	cborn = ConvergenceMap.load(os.path.join(fiducial[collection].getMapSet("kappaBorn").home,"born_z2.00_0001r.fits"))
+	cray = ConvergenceMap.load(os.path.join(fiducial[collection].getMapSet("kappa").home,"WLconv_z2.00_0001r.fits"))
+	cll = ConvergenceMap.load(os.path.join(fiducial[collection].getMapSet("kappaLL").home,"postBorn2-ll_z2.00_0001r.fits"))
+	cgp = ConvergenceMap.load(os.path.join(fiducial[collection].getMapSet("kappaGP").home,"postBorn2-gp_z2.00_0001r.fits"))
 
 	#Smooth
 	for c in (cborn,cray,cll,cgp):
@@ -87,19 +87,19 @@ def convergenceVisualize(cmd_args,smooth=0.5*u.arcmin,fontsize=22):
 ###################################################################################################
 ###################################################################################################
 
-def powerResiduals(cmd_args,fontsize=22):
+def powerResiduals(cmd_args,collection="c0",fontsize=22):
 
 	#Initialize plot
 	fig,ax = plt.subplots(1,2,figsize=(16,8))
 
 	#Load data
 	ell = np.load(os.path.join(batch.home,"ell_nb100.npy"))
-	pFull = np.load(os.path.join(fiducial["c0"].getMapSet("kappa").home,"convergence_power_s0_nb100.npy"))
-	pBorn = np.load(os.path.join(fiducial["c0"].getMapSet("kappaBorn").home,"convergence_power_s0_nb100.npy"))
-	pLL = np.load(os.path.join(fiducial["c0"].getMapSet("kappaLL").home,"convergence_power_s0_nb100.npy"))
-	pLL_cross = np.load(os.path.join(fiducial["c0"].getMapSet("kappaBorn").home,"cross_powerLL_s0_nb100.npy"))
-	pGP = np.load(os.path.join(fiducial["c0"].getMapSet("kappaGP").home,"convergence_power_s0_nb100.npy"))
-	pGP_cross = np.load(os.path.join(fiducial["c0"].getMapSet("kappaBorn").home,"cross_powerGP_s0_nb100.npy"))
+	pFull = np.load(os.path.join(fiducial[collection].getMapSet("kappa").home,"convergence_power_s0_nb100.npy"))
+	pBorn = np.load(os.path.join(fiducial[collection].getMapSet("kappaBorn").home,"convergence_power_s0_nb100.npy"))
+	pLL = np.load(os.path.join(fiducial[collection].getMapSet("kappaLL").home,"convergence_power_s0_nb100.npy"))
+	pLL_cross = np.load(os.path.join(fiducial[collection].getMapSet("kappaBorn").home,"cross_powerLL_s0_nb100.npy"))
+	pGP = np.load(os.path.join(fiducial[collection].getMapSet("kappaGP").home,"convergence_power_s0_nb100.npy"))
+	pGP_cross = np.load(os.path.join(fiducial[collection].getMapSet("kappaBorn").home,"cross_powerGP_s0_nb100.npy"))
 
 	#Plot
 	ax[0].plot(ell,ell*(ell+1)*pBorn.mean(0)/(2.*np.pi),label="born")
@@ -128,7 +128,7 @@ def powerResiduals(cmd_args,fontsize=22):
 ####################################################################################################################
 ####################################################################################################################
 
-def plotSmooth(cmd_args,lines,moment=2,smooth=(0.5,1.,2.,3.,5.,7.,10.),ylabel=None,fontsize=22):
+def plotSmooth(cmd_args,lines,collection="c0",moment=2,smooth=(0.5,1.,2.,3.,5.,7.,10.),ylabel=None,fontsize=22):
 
 	#Set up plot
 	fig,ax = plt.subplots()
@@ -136,7 +136,7 @@ def plotSmooth(cmd_args,lines,moment=2,smooth=(0.5,1.,2.,3.,5.,7.,10.),ylabel=No
 	#Load reference data
 	reference = list()
 	for s in smooth:
-		reference.append(np.load(os.path.join(fiducial["c0"].getMapSet("kappaBorn").home,"convergence_moments_s{0}_nb9.npy".format(int(s*100))))[:,moment].mean())
+		reference.append(np.load(os.path.join(fiducial[collection].getMapSet("kappaBorn").home,"convergence_moments_s{0}_nb9.npy".format(int(s*100))))[:,moment].mean())
 	reference = np.array(reference)
 
 	#Plot each of the lines
@@ -148,7 +148,7 @@ def plotSmooth(cmd_args,lines,moment=2,smooth=(0.5,1.,2.,3.,5.,7.,10.),ylabel=No
 		data = list()
 
 		for s in smooth:
-			addends = [ np.load(os.path.join(fiducial["c0"].getMapSet(ms).home,f.format(int(s*100))))[:,idx].mean() for f in feat ]
+			addends = [ np.load(os.path.join(fiducial[collection].getMapSet(ms).home,f.format(int(s*100))))[:,idx].mean() for f in feat ]
 			data.append(reduce(add,addends))
 
 		data = np.array(data)
@@ -166,7 +166,7 @@ def plotSmooth(cmd_args,lines,moment=2,smooth=(0.5,1.,2.,3.,5.,7.,10.),ylabel=No
 	#Save
 	fig.savefig("delta_m{0}.{1}".format(moment,cmd_args.type))
 
-def plotSmoothSkew(cmd_args,smooth=(0.5,1.,2.,3.,5.,7.,10.),fontsize=22):
+def plotSmoothSkew(cmd_args,collection="c0",smooth=(0.5,1.,2.,3.,5.,7.,10.),fontsize=22):
 
 	moment = 2 
 
@@ -182,9 +182,9 @@ def plotSmoothSkew(cmd_args,smooth=(0.5,1.,2.,3.,5.,7.,10.),fontsize=22):
 
 	}
 
-	plotSmooth(cmd_args,lines,moment=moment,smooth=smooth,ylabel=r"$\langle\delta\kappa^3\rangle/\langle\kappa^3\rangle$",fontsize=fontsize)
+	plotSmooth(cmd_args,lines,collection=collection,moment=moment,smooth=smooth,ylabel=r"$\langle\delta\kappa^3\rangle/\langle\kappa^3\rangle$",fontsize=fontsize)
 
-def plotSmoothKurt(cmd_args,smooth=(0.5,1.,2.,3.,5.,7.,10.),fontsize=22):
+def plotSmoothKurt(cmd_args,collection="c0",smooth=(0.5,1.,2.,3.,5.,7.,10.),fontsize=22):
 
 	moment = 5 
 
@@ -200,12 +200,12 @@ def plotSmoothKurt(cmd_args,smooth=(0.5,1.,2.,3.,5.,7.,10.),fontsize=22):
 
 	}
 
-	plotSmooth(cmd_args,lines,moment=moment,smooth=smooth,ylabel=r"$\langle\delta\kappa^4\rangle_c/\langle\kappa^4\rangle_c$",fontsize=fontsize)
+	plotSmooth(cmd_args,lines,collection=collection,moment=moment,smooth=smooth,ylabel=r"$\langle\delta\kappa^4\rangle_c/\langle\kappa^4\rangle_c$",fontsize=fontsize)
 
 ####################################################################################################################
 ####################################################################################################################
 
-def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn"),figname="pdfMoments",fontsize=22):
+def pdfMoments(cmd_args,collection="c0",kappa_models=("kappa","kappaBorn"),figname="pdfMoments",fontsize=22):
 
 	#Moment labels
 	moment_labels = (
@@ -227,7 +227,7 @@ def pdfMoments(cmd_args,kappa_models=("kappa","kappaBorn"),figname="pdfMoments",
 	for km in kappa_models:
 
 		#Load samples
-		fname = os.path.join(fiducial["c0"].getMapSet(km).home,"convergence_moments_s50_nb9.npy")
+		fname = os.path.join(fiducial[collection].getMapSet(km).home,"convergence_moments_s50_nb9.npy")
 		samples = Ensemble.read(fname).bootstrap(bootstrap_mean,bootstrap_size=1000,resample=1000)
 
 		#Plot each bin
