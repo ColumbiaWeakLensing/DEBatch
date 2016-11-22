@@ -250,7 +250,7 @@ def pdfMoments(cmd_args,collection="c0",kappa_models=("kappa","kappaBorn"),figna
 ###################################################################################################
 ###################################################################################################
 
-def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",title="Power spectrum",kappa_models=("Born",),callback=None,variation_idx=(0,),bootstrap_size=100,resample=1000,fontsize=22):
+def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",title="Power spectrum",kappa_models=("Born",),callback=None,variation_idx=(0,),bootstrap_size=100,resample=1000,return_results=False,fontsize=22):
 	
 	#Initialize plot
 	fig,ax = plt.subplots(len(variation_idx),3,figsize=(24,8*len(variation_idx)))
@@ -311,6 +311,12 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",title="Power spect
 			fitted_parameters_born = fisher.fit(feature_born,features_covariance)
 			fitted_parameters_ray = fisher.fit(feature_ray,features_covariance)
 
+			if return_results:
+				assert len(kappa_models)==1
+				assert len(variation_idx)==1
+
+				return fitted_parameters_born,fitted_parameters_ray
+
 			##########
 			#Plotting#
 			##########
@@ -330,6 +336,45 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",title="Power spect
 	#Save
 	fig.tight_layout()
 	fig.savefig("bias_{0}.{1}".format(feature_name,cmd_args.type))
+
+def pbBiasNgal(cmd_args,feature_names="convergence_momentsSN{0}_s0_nb9",ngal=(15,),kappa_model="Born",callback=None,variation_idx=0,bootstrap_size=100,resample=1000,fontsize=22):
+	
+	#Set up plot
+	fig,ax = plt.subplots()
+
+	#Parameter placeholders
+	lines = dict()
+
+	#Cycle over ngal
+	for ng in ngal:
+
+		#Fit parameters with Born, ray
+		pb,pr = pbBias(cmd_args,feature_name=feature_names.format(ng),
+			kappa_models=(kappa_model,),callback=callback,variation_idx=(variation_idx,),bootstrap_size=bootstrap_size,
+			resample=resample,return_results=True,fontsize=fontsize)
+
+		#Add parameter
+		for par in pb:
+			if par not in lines:
+				lines[par] = list()
+
+		#Compute (pB-pR)/sigmaR
+		for par in pb:
+			bias = (pb[par].mean() - pr[par].mean())/pr[par].std()
+			lines[par].append(bias)
+
+	#Plot
+	for par in lines:
+		ax.plot(ngal,np.array(lines[par]),label=plab[par])
+
+	#Legend
+	ax.set_xlabel(r"$n_g({\rm arcmin}^{-2})$",fontsize=fontsize)
+	ax.set_ylabel(r"\langle p_{\rm born} - p_{\rm ray}\rangle/\sigma_{\rm ray}")
+	ax.legend()
+
+	#Save
+	fig.tight_layout()
+	fig.savefig("bias_ngal_{0}.{1}".format(feature_names.replace("{0}",""),cmd_args.type))
 
 ####################################################################################################################
 
@@ -419,7 +464,7 @@ method["4"] = pdfMoments
 method["5"] = pbBiasPower
 method["5b"] = pbBiasMoments
 method["5c"] = pbBiasMomentsSN
-method["6"] = pbBiasPeaks
+method["6"] = pbBiasNgal
 
 #Main
 def main():

@@ -191,6 +191,7 @@ if __name__=="__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-c","--config",dest="config",action="store",default=None,help="config file")
 	parser.add_argument("-s","--smooth",dest="smooth",action="store",type=float,default=None,help="smoothing scale in arcmin")
+	parser.add_argument("-N","--ngal",dest="ngal",action="store",type=int,default=None,help="number of galaxies per sq arcmin")
 	parser.add_argument("-m","--maps",dest="maps",action="store",default=None,help="map sets file")
 	parser.add_argument("-C","--collection",dest="collection",action="store",default="c0",help="model collection")
 	cmd_args = parser.parse_args()
@@ -228,12 +229,16 @@ if __name__=="__main__":
 	#Redshift
 	redshift = options["redshift"]
 	add_shape_noise = options["add_shape_noise"]
-	ngal = options["ngal"]
 
 	#Smoothing
 	smoothing = options["smoothing"]
 	if cmd_args.smooth is not None:
 		smoothing = cmd_args.smooth
+
+	#Ngal per arcmin
+	ngal = options["ngal"]
+	if cmd_args.ngal is not None:
+		ngal = cmd_args.ngal
 
 	#Savename
 	savename = options["method"]
