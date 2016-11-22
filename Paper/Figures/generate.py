@@ -110,8 +110,8 @@ def powerResiduals(cmd_args,collection="c0",fontsize=22):
 	ax[1].plot(ell,ell*(ell+1)*np.abs(pLL_cross.mean(0))/np.pi,label=r"$2{\rm born}\times{\rm ll}$")
 
 	#Labels
-	for n in (0,1):
-		ax[n].legend(loc="upper left",prop={"size":15})
+	ax[0].legend(loc="lower right",prop={"size":20})
+	ax[1].legend(loc="upper left",prop={"size":20})
 
 	for n in (0,1):
 		ax[n].set_xscale("log")
@@ -161,7 +161,7 @@ def plotSmooth(cmd_args,lines,collection="c0",moment=2,smooth=(0.5,1.,2.,3.,5.,7
 	#Labels
 	ax.set_xlabel(r"$\theta_G({\rm arcmin})$",fontsize=fontsize)
 	ax.set_ylabel(ylabel,fontsize=fontsize)
-	ax.legend(loc="upper center",prop={"size":13})
+	ax.legend(bbox_to_anchor=(0., 1.02, 1., .102),loc=3,ncol=2,mode="expand", borderaxespad=0.)
 
 	#Save
 	fig.savefig("delta_m{0}.{1}".format(moment,cmd_args.type))
@@ -173,7 +173,7 @@ def plotSmoothSkew(cmd_args,collection="c0",smooth=(0.5,1.,2.,3.,5.,7.,10.),font
 	#Lines to plot
 	lines = {
 
-	r"$\kappa^3_{\rm full}-\kappa^3_{\rm born}$" : ("kappa",("convergence_moments_s{0}_nb9.npy",),moment,True,"denim blue","-",0),
+	r"$\kappa^3_{\rm ray}-\kappa^3_{\rm born}$" : ("kappa",("convergence_moments_s{0}_nb9.npy",),moment,True,"denim blue","-",0),
 	r"$\kappa^3_{\rm born+geo}-\kappa^3_{\rm born}$" : ("kappaB+GP",("convergence_moments_s{0}_nb9.npy",),moment,True,"medium green","-",1),
 	r"$\kappa^3_{\rm born+ll}-\kappa^3_{\rm born}$" : ("kappaB+LL",("convergence_moments_s{0}_nb9.npy",),moment,True,"pale red","-",2),
 	r"$3\kappa^2_{\rm born}\kappa_{\rm geo}$" : ("kappaBorn",("cross_skewGP_s{0}_nb1.npy",),0,False,"medium green","--",3),
@@ -191,7 +191,7 @@ def plotSmoothKurt(cmd_args,collection="c0",smooth=(0.5,1.,2.,3.,5.,7.,10.),font
 	#Lines to plot
 	lines = {
 
-	r"$\kappa^4_{\rm full}-\kappa^4_{\rm born}$" : ("kappa",("convergence_moments_s{0}_nb9.npy",),moment,True,"denim blue","-",0),
+	r"$\kappa^4_{\rm ray}-\kappa^4_{\rm born}$" : ("kappa",("convergence_moments_s{0}_nb9.npy",),moment,True,"denim blue","-",0),
 	r"$\kappa^4_{\rm born+geo}-\kappa^4_{\rm born}$" : ("kappaB+GP",("convergence_moments_s{0}_nb9.npy",),moment,True,"medium green","-",1),
 	r"$\kappa^4_{\rm born+ll}-\kappa^4_{\rm born}$" : ("kappaB+LL",("convergence_moments_s{0}_nb9.npy",),moment,True,"pale red","-",2),
 	r"$4\kappa^3_{\rm born}\kappa_{\rm geo}$" : ("kappaBorn",("cross_kurtGP_s{0}_nb1.npy",),0,False,"medium green","--",3),
@@ -215,7 +215,7 @@ def pdfMoments(cmd_args,collection="c0",kappa_models=("kappa","kappaBorn"),figna
 		)
 	
 	#Model labels
-	model_labels = {"kappa":"full","kappaBorn":"born","kappaBornRT":"hybrid","kappaB+GP":"born+geo"}
+	model_labels = {"kappa":"ray","kappaBorn":"born","kappaBornRT":"hybrid","kappaB+GP":"born+geo"}
 
 	#Set up plot
 	fig,axes = plt.subplots(3,3,figsize=(24,)*2)
@@ -241,6 +241,7 @@ def pdfMoments(cmd_args,collection="c0",kappa_models=("kappa","kappaBorn"),figna
 
 	#Scientific notation
 	for ax in axes.flatten():
+		ax.get_xaxis().get_major_formatter().set_powerlimits((0,0))
 		plt.setp(ax.get_xticklabels(),rotation=30)
 
 	#Save
@@ -274,7 +275,11 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",title="Power spect
 	for model in models:
 		parameters[model.cosmo_id] = np.array([model.cosmology.Om0,model.cosmology.w0,model.cosmology.sigma8])
 		for mf in kappa_models:
-			modelFeatures[mf][model.cosmo_id] = Ensemble.read(os.path.join(model["c0"].getMapSet("kappa"+mf).home,feature_name+".npy"),callback_loader=callback)
+
+			try:
+				modelFeatures[mf][model.cosmo_id] = Ensemble.read(os.path.join(model["c0"].getMapSet("kappa"+mf).home,feature_name+".npy"),callback_loader=callback)
+			except IOError:
+				pass
 
 	#Fit each model
 	for mf in kappa_models:
@@ -337,7 +342,7 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",title="Power spect
 	fig.tight_layout()
 	fig.savefig("bias_{0}.{1}".format(feature_name,cmd_args.type))
 
-def pbBiasNgal(cmd_args,feature_names="convergence_momentsSN{0}_s0_nb9",ngal=(15,),kappa_model="Born",callback=None,variation_idx=0,bootstrap_size=100,resample=1000,fontsize=22):
+def pbBiasNgal(cmd_args,feature_names="convergence_momentsSN{0}_s50_nb9",ngal=(10,15,20,30,40,50,60),kappa_model="Born",callback=None,variation_idx=0,bootstrap_size=100,resample=1000,fontsize=22):
 	
 	#Set up plot
 	fig,ax = plt.subplots()
@@ -369,8 +374,8 @@ def pbBiasNgal(cmd_args,feature_names="convergence_momentsSN{0}_s0_nb9",ngal=(15
 
 	#Legend
 	ax.set_xlabel(r"$n_g({\rm arcmin}^{-2})$",fontsize=fontsize)
-	ax.set_ylabel(r"\langle p_{\rm born} - p_{\rm ray}\rangle/\sigma_{\rm ray}")
-	ax.legend()
+	ax.set_ylabel(r"$\langle p_{\rm born} - p_{\rm ray}\rangle/\sigma_{\rm ray}$")
+	ax.legend(bbox_to_anchor=(0., 1.02, 1., .102),loc=3,ncol=3,mode="expand", borderaxespad=0.)
 
 	#Save
 	fig.tight_layout()
