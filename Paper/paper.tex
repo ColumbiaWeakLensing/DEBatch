@@ -187,7 +187,7 @@ Born + $O(\Phi^2)$ & 156.7\,s & 1.52\,GB & 44\,hours \\ \hline
 
 \end{center}
 
-\caption{CPU time and memory usage benchmarks for the convergence reconstruction operations. The test case we considered consists in a discretization with 42 uniformly spaced lenses between the observer and the sources at $z_s=2$, each with a resolution of $4096^2$ pixels. The $\kappa$ field is resolved with $2048^2$ light rays. We show both the runtime for producing a single field of view and the CPU hours needed to perform the reconstruction 1000 times, to mock an LSST--like galaxy survey.}
+\caption{CPU time and memory usage benchmarks for the convergence reconstruction operations. The test case we considered consists in a discretization with $N_l=42$ uniformly spaced lenses between the observer and the sources at $z_s=2$, each with a resolution of $4096^2$ pixels. The $\kappa$ field is resolved with $2048^2$ light rays. We show both the runtime for producing a single field of view and the CPU hours needed to perform the reconstruction 1000 times, to mock an LSST--like galaxy survey. Run times do not include the Poisson solution calculation, as this can be recycled to produce multiple field of view realizations. The Poisson solution run time is negligible in the account of the total CPU time needed for the production of $N_r\gg N_l$ field of view realizations.}
 \label{tab:benchmarks}
 
 \end{table*}
