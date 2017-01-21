@@ -43,9 +43,9 @@ def convergence_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,
 	except IOError:
 		return None
 
-#################################################################################################################
-##############Reduced shear correction to the power spectrum#####################################################
-#################################################################################################################
+############################################################################################
+##############Reduced shear corrections#####################################################
+############################################################################################
 
 def redshear_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0):
 
@@ -71,6 +71,55 @@ def redshear_power(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,nga
 		#Measure cross
 		l,Pl = conv.cross(conv2,l_edges=l_edges)
 		return Pl
+
+	except IOError:
+		return None
+
+def redshear_skew(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0):
+	
+	try:
+		conv = ConvergenceMap.load(map_set.path(fname))
+	
+		if add_shape_noise:
+			gen = GaussianNoiseGenerator.forMap(conv)
+			conv = conv + gen.getShapeNoise(z=z,ngal=ngal*(u.arcmin**-2),seed=hash(os.path.basename(fname))%4294967295)
+
+		if smoothing>0.:
+			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
+
+		#Construct shear map, compute kappa*gamma correction, back to convergence
+		shear = ShearMap.fromConvergence(conv)
+		for n in (0,1):
+			shear.data[n]*=conv.data
+		conv2 = shear.convergence()
+
+		#Measure skewness correction
+		return np.array([(3*(conv.data**2)*(conv2.data)).mean()])
+
+	except IOError:
+		return None
+
+def redshear_kurt(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal=15,smoothing=0.0):
+	
+	try:
+		conv = ConvergenceMap.load(map_set.path(fname))
+	
+		if add_shape_noise:
+			gen = GaussianNoiseGenerator.forMap(conv)
+			conv = conv + gen.getShapeNoise(z=z,ngal=ngal*(u.arcmin**-2),seed=hash(os.path.basename(fname))%4294967295)
+
+		if smoothing>0.:
+			conv = conv.smooth(smoothing*u.arcmin,kind="gaussianFFT")
+
+		#Construct shear map, compute kappa*gamma correction, back to convergence
+		shear = ShearMap.fromConvergence(conv)
+		for n in (0,1):
+			shear.data[n]*=conv.data
+		conv2 = shear.convergence()
+
+		#Measure kurtosis correction
+		kurt = 4*((conv.data**3)*conv2.data).mean() - 12*((conv.data**2).mean())*(conv.data*conv2.data).mean()
+		return np.array([kurt])
 
 	except IOError:
 		return None
