@@ -100,23 +100,28 @@ def powerResiduals(cmd_args,collection="c0",fontsize=22):
 	pLL_cross = np.load(os.path.join(fiducial[collection].getMapSet("kappaBorn").home,"cross_powerLL_s0_nb100.npy"))
 	pGP = np.load(os.path.join(fiducial[collection].getMapSet("kappaGP").home,"convergence_power_s0_nb100.npy"))
 	pGP_cross = np.load(os.path.join(fiducial[collection].getMapSet("kappaBorn").home,"cross_powerGP_s0_nb100.npy"))
+	p_redshear_cross = np.load(os.path.join(fiducial[collection].getMapSet("kappaBorn").home,"redshear_power_s0_nb100.npy"))
 
 	#Plot
-	ax[0].plot(ell,ell*(ell+1)*pBorn.mean(0)/(2.*np.pi),label="born")
-	ax[0].plot(ell,ell*(ell+1)*pGP.mean(0)/(2.*np.pi),label="geodesic")
-	ax[0].plot(ell,ell*(ell+1)*pLL.mean(0)/(2.*np.pi),label="lens-lens")
+	ax[0].plot(ell,ell*(ell+1)*pBorn.mean(0)/(2.*np.pi),label=r"${\rm born}$")
+	ax[0].plot(ell,ell*(ell+1)*pGP.mean(0)/(2.*np.pi),label=r"${\rm geodesic}$")
+	ax[0].plot(ell,ell*(ell+1)*pLL.mean(0)/(2.*np.pi),label=r"${\rm lens-lens}$")
 	ax[1].plot(ell,ell*(ell+1)*(np.abs(pFull.mean(0)-pBorn.mean(0)))/(2.0*np.pi),label=r"${\rm ray-born}$")
 	ax[1].plot(ell,ell*(ell+1)*np.abs(pGP_cross.mean(0))/np.pi,label=r"$2{\rm born}\times{\rm geo}$")
 	ax[1].plot(ell,ell*(ell+1)*np.abs(pLL_cross.mean(0))/np.pi,label=r"$2{\rm born}\times{\rm ll}$")
+	ax[1].plot(ell,ell*(ell+1)*np.abs(p_redshear_cross.mean(0))/np.pi,label=r"$2(\kappa\gamma)_{\rm born}$")
+
+	#Shape noise
+	pshape = ((0.15+0.035*2.0)**2)/((45*(u.arcmin**-2)).to(u.rad**-2).value)
+	for n in (0,1):
+		ax[n].plot(ell,ell*(ell+1)*pshape/(2.*np.pi),label=r"${\rm Shape}$ ${\rm noise,}$ $45{\rm gal/arcmin}^2$",color=sns.xkcd_rgb["dark grey"],linestyle="--")
 
 	#Labels
-	ax[0].legend(loc="lower right",prop={"size":20})
-	ax[1].legend(loc="upper left",prop={"size":20})
-
 	for n in (0,1):
 		ax[n].set_xscale("log")
 		ax[n].set_yscale("log")
 		ax[n].set_xlabel(r"$\ell$",fontsize=fontsize)
+		ax[n].legend(loc="upper left",prop={"size":15})
 	
 	ax[0].set_ylabel(r"$\ell(\ell+1)P^{\kappa\kappa}(\ell)/2\pi$",fontsize=fontsize)
 	ax[1].set_ylabel(r"$\ell(\ell+1){\rm abs(residuals)/2\pi}$")
@@ -161,10 +166,11 @@ def plotSmooth(cmd_args,lines,collection="c0",moment=2,smooth=(0.5,1.,2.,3.,5.,7
 	#Labels
 	ax.set_xlabel(r"$\theta_G({\rm arcmin})$",fontsize=fontsize)
 	ax.set_ylabel(ylabel,fontsize=fontsize)
-	ax.legend(bbox_to_anchor=(0., 1.02, 1., .102),loc=3,ncol=2,mode="expand", borderaxespad=0.)
+	lgd = ax.legend(bbox_to_anchor=(0., 1.02, 1., .102),loc=3,ncol=2,mode="expand", borderaxespad=0.,prop={"size":15})
 
 	#Save
-	fig.savefig("delta_m{0}.{1}".format(moment,cmd_args.type))
+	fig.tight_layout()
+	fig.savefig("delta_m{0}.{1}".format(moment,cmd_args.type),bbox_extra_artists=(lgd,),bbox_inches="tight")
 
 def plotSmoothSkew(cmd_args,collection="c0",smooth=(0.5,1.,2.,3.,5.,7.,10.),fontsize=22):
 
@@ -178,6 +184,7 @@ def plotSmoothSkew(cmd_args,collection="c0",smooth=(0.5,1.,2.,3.,5.,7.,10.),font
 	r"$\kappa^3_{\rm born+ll}-\kappa^3_{\rm born}$" : ("kappaB+LL",("convergence_moments_s{0}_nb9.npy",),moment,True,"pale red","-",2),
 	r"$3\kappa^2_{\rm born}\kappa_{\rm geo}$" : ("kappaBorn",("cross_skewGP_s{0}_nb1.npy",),0,False,"medium green","--",4),
 	r"$3\kappa^2_{\rm born}\kappa_{\rm ll}$" : ("kappaBorn",("cross_skewLL_s{0}_nb1.npy",),0,False,"pale red","--",5),
+	r"$3\kappa^2_{\rm born}(\kappa\gamma)_{\rm born}$" : ("kappaBorn",("redshear_skew_s{0}_nb1.npy",),0,False,"dark grey","-",6),
 	r"$3\kappa^2_{\rm born}\kappa_{\rm ll}+3\kappa^2_{\rm born}\kappa_{\rm geo}$" : ("kappaBorn",("cross_skewLL_s{0}_nb1.npy","cross_skewGP_s{0}_nb1.npy"),0,False,"denim blue","--",3),
 
 	}
@@ -196,6 +203,7 @@ def plotSmoothKurt(cmd_args,collection="c0",smooth=(0.5,1.,2.,3.,5.,7.,10.),font
 	r"$\kappa^4_{\rm born+ll}-\kappa^4_{\rm born}$" : ("kappaB+LL",("convergence_moments_s{0}_nb9.npy",),moment,True,"pale red","-",2),
 	r"$4\kappa^3_{\rm born}\kappa_{\rm geo}$" : ("kappaBorn",("cross_kurtGP_s{0}_nb1.npy",),0,False,"medium green","--",4),
 	r"$4\kappa^4_{\rm born}\kappa_{\rm ll}$" : ("kappaBorn",("cross_kurtLL_s{0}_nb1.npy",),0,False,"pale red","--",5),
+	r"$4\kappa^3_{\rm born}(\kappa\gamma)_{\rm born}$" : ("kappaBorn",("redshear_kurt_s{0}_nb1.npy",),0,False,"dark grey","-",6),
 	r"$4\kappa^3_{\rm born}\kappa_{\rm ll}+4\kappa^3_{\rm born}\kappa_{\rm geo}$" : ("kappaBorn",("cross_kurtLL_s{0}_nb1.npy","cross_kurtGP_s{0}_nb1.npy"),0,False,"denim blue","--",3),
 
 	}
