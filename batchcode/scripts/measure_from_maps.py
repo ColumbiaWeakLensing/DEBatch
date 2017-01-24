@@ -79,6 +79,7 @@ def redshear_skew(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal
 	
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
+		conv.data -= conv.data.mean()
 	
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
@@ -103,6 +104,7 @@ def redshear_kurt(fname,map_set,l_edges,kappa_edges,z,add_shape_noise=False,ngal
 	
 	try:
 		conv = ConvergenceMap.load(map_set.path(fname))
+		conv.data -= conv.data.mean()
 	
 		if add_shape_noise:
 			gen = GaussianNoiseGenerator.forMap(conv)
