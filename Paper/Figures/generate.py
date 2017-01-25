@@ -109,7 +109,7 @@ def powerResiduals(cmd_args,collection="c0",fontsize=22):
 	ax[1].plot(ell,ell*(ell+1)*(np.abs(pFull.mean(0)-pBorn.mean(0)))/(2.0*np.pi),label=r"${\rm ray-born}$")
 	ax[1].plot(ell,ell*(ell+1)*np.abs(pGP_cross.mean(0))/np.pi,label=r"$2{\rm born}\times{\rm geo}$")
 	ax[1].plot(ell,ell*(ell+1)*np.abs(pLL_cross.mean(0))/np.pi,label=r"$2{\rm born}\times{\rm ll}$")
-	ax[1].plot(ell,ell*(ell+1)*np.abs(p_redshear_cross.mean(0))/np.pi,label=r"$2(\kappa\gamma)_{\rm born}$")
+	ax[1].plot(ell,ell*(ell+1)*np.abs(p_redshear_cross.mean(0))/np.pi,label=r"$2\kappa_{\rm born}\times(\kappa\gamma)_{\rm born}$")
 
 	#Shape noise
 	pshape = ((0.15+0.035*2.0)**2)/((45*(u.arcmin**-2)).to(u.rad**-2).value)
