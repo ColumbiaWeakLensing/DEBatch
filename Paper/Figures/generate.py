@@ -94,6 +94,10 @@ def powerResiduals(cmd_args,collection="c0",fontsize=22):
 
 	#Load data
 	ell = np.load(os.path.join(batch.home,"ell_nb100.npy"))
+	thetaG = 0.5*u.arcmin
+	smooth = np.exp(-(ell*(thetaG.to(u.rad).value))**2)
+
+	#Plot
 	pFull = np.load(os.path.join(fiducial[collection].getMapSet("kappa").home,"convergence_power_s0_nb100.npy"))
 	pBorn = np.load(os.path.join(fiducial[collection].getMapSet("kappaBorn").home,"convergence_power_s0_nb100.npy"))
 	pLL = np.load(os.path.join(fiducial[collection].getMapSet("kappaLL").home,"convergence_power_s0_nb100.npy"))
@@ -103,25 +107,26 @@ def powerResiduals(cmd_args,collection="c0",fontsize=22):
 	p_redshear_cross = np.load(os.path.join(fiducial[collection].getMapSet("kappaBorn").home,"redshear_power_s0_nb100.npy"))
 
 	#Plot
-	ax[0].plot(ell,ell*(ell+1)*pBorn.mean(0)/(2.*np.pi),label=r"${\rm born}$")
-	ax[0].plot(ell,ell*(ell+1)*pGP.mean(0)/(2.*np.pi),label=r"${\rm geodesic}$")
-	ax[0].plot(ell,ell*(ell+1)*pLL.mean(0)/(2.*np.pi),label=r"${\rm lens-lens}$")
-	ax[1].plot(ell,ell*(ell+1)*(np.abs(pFull.mean(0)-pBorn.mean(0)))/(2.0*np.pi),label=r"${\rm ray-born}$")
-	ax[1].plot(ell,ell*(ell+1)*np.abs(pGP_cross.mean(0))/np.pi,label=r"$2{\rm born}\times{\rm geo}$")
-	ax[1].plot(ell,ell*(ell+1)*np.abs(pLL_cross.mean(0))/np.pi,label=r"$2{\rm born}\times{\rm ll}$")
-	ax[1].plot(ell,ell*(ell+1)*np.abs(p_redshear_cross.mean(0))/np.pi,label=r"$2\kappa_{\rm born}\times(\kappa\gamma)_{\rm born}$")
+	ax[0].plot(ell,ell*(ell+1)*smooth*pBorn.mean(0)/(2.*np.pi),label=r"${\rm born}$")
+	ax[0].plot(ell,ell*(ell+1)*smooth*pGP.mean(0)/(2.*np.pi),label=r"${\rm geodesic}$")
+	ax[0].plot(ell,ell*(ell+1)*smooth*pLL.mean(0)/(2.*np.pi),label=r"${\rm lens-lens}$")
+	ax[1].plot(ell,ell*(ell+1)*smooth*(np.abs(pFull.mean(0)-pBorn.mean(0)))/(2.0*np.pi),label=r"${\rm ray-born}$")
+	ax[1].plot(ell,ell*(ell+1)*smooth*np.abs(pGP_cross.mean(0))/np.pi,label=r"$2{\rm born}\times{\rm geo}$")
+	ax[1].plot(ell,ell*(ell+1)*smooth*np.abs(pLL_cross.mean(0))/np.pi,label=r"$2{\rm born}\times{\rm ll}$")
+	ax[1].plot(ell,ell*(ell+1)*smooth*np.abs(p_redshear_cross.mean(0))/np.pi,label=r"$2\kappa_{\rm born}\times(\kappa\gamma)_{\rm born}$")
 
 	#Shape noise
 	pshape = ((0.15+0.035*2.0)**2)/((45*(u.arcmin**-2)).to(u.rad**-2).value)
+
 	for n in (0,1):
-		ax[n].plot(ell,ell*(ell+1)*pshape/(2.*np.pi),label=r"${\rm Shape}$ ${\rm noise,}$ $45{\rm gal/arcmin}^2$",color=sns.xkcd_rgb["dark grey"],linestyle="--")
+		ax[n].plot(ell,ell*(ell+1)*pshape*smooth/(2.*np.pi),label=r"${\rm Shape}$ ${\rm noise,}$ $45{\rm gal/arcmin}^2$",color=sns.xkcd_rgb["dark grey"],linestyle="--")
 
 	#Labels
 	for n in (0,1):
 		ax[n].set_xscale("log")
 		ax[n].set_yscale("log")
 		ax[n].set_xlabel(r"$\ell$",fontsize=fontsize)
-		ax[n].legend(loc="upper left",prop={"size":15})
+		ax[n].legend(ncol=2,loc=3,bbox_to_anchor=(0., 1.02, 1., .102),prop={"size":15})
 	
 	ax[0].set_ylabel(r"$\ell(\ell+1)P^{\kappa\kappa}(\ell)/2\pi$",fontsize=fontsize)
 	ax[1].set_ylabel(r"$\ell(\ell+1){\rm abs(residuals)/2\pi}$")
