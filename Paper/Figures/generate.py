@@ -113,7 +113,9 @@ def powerResiduals(cmd_args,collection="c0",fontsize=22):
 	ax[1].plot(ell,ell*(ell+1)*smooth*(np.abs(pFull.mean(0)-pBorn.mean(0)))/(2.0*np.pi),label=r"${\rm ray-born}$")
 	ax[1].plot(ell,ell*(ell+1)*smooth*np.abs(pGP_cross.mean(0))/np.pi,label=r"$2{\rm born}\times{\rm geo}$")
 	ax[1].plot(ell,ell*(ell+1)*smooth*np.abs(pLL_cross.mean(0))/np.pi,label=r"$2{\rm born}\times{\rm ll}$")
-	ax[1].plot(ell,ell*(ell+1)*smooth*np.abs(p_redshear_cross.mean(0))/np.pi,label=r"$2\kappa_{\rm born}\times(\kappa\gamma)_{\rm born}$")
+	ax[1].plot(ell,ell*(ell+1)*smooth*np.abs(p_redshear_cross.mean(0))/np.pi,label=r"$2\kappa_{\rm born}\times(\kappa\gamma)_{\rm born}$",color=sns.xkcd_rgb["dark grey"])
+	ax[1].plot(ell,ell*(ell+1)*smooth*pFull.std(0)/(2.0*np.pi)/1000.,label=r"${\rm Cosmic}$ ${\rm variance (LSST)}$",color=sns.xkcd_rgb["pumpkin"])
+	ax[1].plot(ell,ell*(ell+1)*smooth*np.abs(pFull.mean(0)-pBorn.mean(0)-2*pGP_cross.mean(0)-2*pLL_cross.mean(0))/(2.0*np.pi),label=r"${\rm ray-born}-2{\rm born}\times{\rm geo}-2{\rm born}\times{\rm ll}$",linestyle="--",color=sns.xkcd_rgb["denim blue"])
 
 	#Shape noise
 	pshape = ((0.15+0.035*2.0)**2)/((45*(u.arcmin**-2)).to(u.rad**-2).value)
@@ -355,7 +357,10 @@ def pbBias(cmd_args,feature_name="convergence_power_s0_nb100",title="Power spect
 	fig.tight_layout()
 	fig.savefig("bias_{0}.{1}".format(feature_name,cmd_args.type))
 
-def pbBiasNgal(cmd_args,feature_names="convergence_powerSN{0}_s0_nb100",ngal=(10,15,20,30,40,50,60),kappa_model="Born",callback=None,variation_idx=0,bootstrap_size=1000,resample=1000,fontsize=22):
+####################################################################################################################
+####################################################################################################################
+
+def pbBiasNgal(cmd_args,feature_names="convergence_powerSN{0}_s0_nb100",ngal=(10,15,20,30,40,50,60),kappa_model="Born",callback=None,variation_idx=0,bootstrap_size=1000,resample=1000,legend=True,title=r"$P^{\kappa\kappa}$",fontsize=22):
 	
 	#Set up plot
 	fig,ax = plt.subplots()
@@ -388,12 +393,24 @@ def pbBiasNgal(cmd_args,feature_names="convergence_powerSN{0}_s0_nb100",ngal=(10
 	#Legend
 	ax.set_xlabel(r"$n_g({\rm arcmin}^{-2})$",fontsize=fontsize)
 	ax.set_ylabel(r"$\langle p_{\rm born} - p_{\rm ray}\rangle/\sigma_{\rm ray}$")
-	ax.legend(bbox_to_anchor=(0., 1.02, 1., .102),loc=3,ncol=3,mode="expand", borderaxespad=0.)
+	ax.set_title(title,fontsize=18)
+
+	if legend:
+		ax.legend(loc="upper right",prop={"size":17})
 
 	#Save
 	fig.tight_layout()
 	fig.savefig("bias_ngal_{0}.{1}".format(feature_names.replace("{0}",""),cmd_args.type))
 
+def pbBiasNgalPower(cmd_args):
+	pbBiasNgal(cmd_args,feature_names="convergence_powerSN{0}_s0_nb100",title=r"$P^{\kappa\kappa}$")
+
+def pbBiasNgalMoments(cmd_args):
+	pbBiasNgal(cmd_args,feature_names="convergence_momentsSN{0}_s50_nb9",title=r"${\rm Moments}$",legend=False)
+
+####################################################################################################################
+####################################################################################################################
+####################################################################################################################
 ####################################################################################################################
 
 def pbBiasPowerSN15(cmd_args,feature_name="convergence_powerSN15_s0_nb100"):
@@ -479,7 +496,8 @@ method["4"] = pdfMoments
 method["5"] = pbBiasPowerSN30
 method["5b"] = pbBiasMomentsSN15
 method["5c"] = pbBiasMomentsSN30
-method["6"] = pbBiasNgal
+method["6"] = pbBiasNgalPower
+method["6b"] = pbBiasNgalMoments
 
 #Main
 def main():
